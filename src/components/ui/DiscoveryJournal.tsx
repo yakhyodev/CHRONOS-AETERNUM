@@ -10,6 +10,7 @@ import {
   NARRATIVE_CHAPTERS,
   ORDERED_CHAPTER_IDS,
   type NarrativeChapterId,
+  getChapter06Content,
 } from '@/types/phase08';
 import { chronosStore } from '@/lib/chronosStore';
 
@@ -188,24 +189,57 @@ export function DiscoveryJournal() {
               </div>
             )}
 
-            {/* The Final Warning Banner if all 5 Echoes unlocked */}
-            {isConvergenceReached && (
+            {/* The Final Warning / Paradox Gateway Banner if Chapter 6 unlocked */}
+            {unlockedChapters.includes('ch-06-warning') && (
               <div className="rounded-xl border border-[#D4AF37]/70 bg-[#D4AF37]/10 p-4 shadow-[0_0_25px_rgba(212,175,55,0.2)] text-left">
-                <span className="font-mono text-[10px] tracking-[0.2em] font-bold text-[#FFE8B5] uppercase">
-                  CHAPTER 06 // CONVERGENCE REACHED
-                </span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-mono text-[10px] tracking-[0.2em] font-bold text-[#FFE8B5] uppercase">
+                    CHAPTER 06 // {isConvergenceReached ? 'FULL CONVERGENCE (5/5)' : `PARTIAL CONVERGENCE (${discoveredEchoes.length}/5)`}
+                  </span>
+                  <span className="font-mono text-[9px] text-[#D4AF37]">
+                    {isConvergenceReached ? 'COMPLETE RECONSTRUCTED WARNING' : 'SHORTENED REVELATION'}
+                  </span>
+                </div>
                 <p className="mt-1 font-cinzel text-sm sm:text-base font-bold text-[#FFE8B5]">
-                  "THE PAST REMEMBERS. THE FUTURE IS WAITING."
+                  {isConvergenceReached
+                    ? '"THE PAST REMEMBERS. THE FUTURE IS WAITING."'
+                    : '"THE TIMELINE FRACTURE THREATENS RUNAWAY COLLAPSE."'}
                 </p>
                 <p className="mt-0.5 font-mono text-[10px] text-zinc-300">
-                  Five chronological anomalies reconciled. The boundary between historical eras is ready for alignment.
+                  {isConvergenceReached
+                    ? 'All five chronological anomalies reconciled. The boundary between historical eras is ready for alignment.'
+                    : `Partial archival record recovered (${discoveredEchoes.length}/5 Echoes). The Chronos Core is ready to initiate the primary finale.`}
                 </p>
+
+                <div className="mt-3 pt-2 border-t border-[#D4AF37]/30 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      chronosStore.setIsJournalOpen(false);
+                      chronosStore.startParadoxFinale();
+                    }}
+                    className="px-4 py-1.5 rounded-full border border-[#D4AF37] bg-[#D4AF37]/25 hover:bg-[#D4AF37]/45 text-[#FFE8B5] font-cinzel text-[11px] font-bold tracking-widest transition shadow-[0_0_12px_rgba(212,175,55,0.4)]"
+                  >
+                    ⚡ INITIATE PARADOX FINALE &rarr;
+                  </button>
+                </div>
               </div>
             )}
 
             {ORDERED_CHAPTER_IDS.map((chapterId) => {
               const chapter = NARRATIVE_CHAPTERS[chapterId];
               const isUnlocked = unlockedChapters.includes(chapterId);
+
+              // Use dynamic content for Chapter 06 to support shortened revelation
+              const dynamicContent =
+                chapterId === 'ch-06-warning'
+                  ? getChapter06Content(discoveredEchoes.length)
+                  : null;
+
+              const transmissionLines =
+                dynamicContent ? dynamicContent.transmissionLines : chapter.transmissionLines;
+              const revelationText =
+                dynamicContent ? dynamicContent.revelationText : chapter.revelationText;
 
               return (
                 <div
@@ -236,13 +270,28 @@ export function DiscoveryJournal() {
                         {chapter.synopsis}
                       </p>
                       <div className="rounded border border-cyan-400/20 bg-black/40 p-2.5 font-mono text-[10px] sm:text-[11px] text-cyan-200 space-y-1">
-                        {chapter.transmissionLines.map((line, idx) => (
+                        {transmissionLines.map((line, idx) => (
                           <p key={`chap-line-${idx}`}>{line}</p>
                         ))}
                       </div>
                       <p className="font-mono text-[10px] text-[#EAB774]">
-                        INSIGHT: {chapter.revelationText}
+                        INSIGHT: {revelationText}
                       </p>
+
+                      {chapterId === 'ch-06-warning' && (
+                        <div className="mt-2 pt-2 border-t border-cyan-500/20 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              chronosStore.setIsJournalOpen(false);
+                              chronosStore.startParadoxFinale();
+                            }}
+                            className="px-3.5 py-1 rounded-full border border-cyan-400 bg-cyan-500/20 hover:bg-cyan-500/35 text-cyan-200 font-cinzel text-[10px] font-semibold tracking-wider transition"
+                          >
+                            LAUNCH PARADOX FINALE &rarr;
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <p className="mt-2 font-mono text-[10px] text-zinc-600 italic">

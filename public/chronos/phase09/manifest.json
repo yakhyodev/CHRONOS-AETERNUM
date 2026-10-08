@@ -1,0 +1,20 @@
+{
+  "project": "CHRONOS \u2014 Aeternum",
+  "phase": "09",
+  "theme": "The Paradox Finale",
+  "visual_assets_are_references_only": true,
+  "approved_endings": [
+    {
+      "id": "restore-time",
+      "title": "RESTORE TIME",
+      "reference": "06-restore-time-ending.jpg"
+    },
+    {
+      "id": "explore-unknown",
+      "title": "EXPLORE THE UNKNOWN",
+      "reference": "07-unknown-future-ending.jpg"
+    }
+  ],
+  "warning_visual": "08-fracture-warning-visual.jpg",
+  "note": "Generated art board also shows illustrative alternate outcome labels. Preserve two canonical user choices; Ruin is not a third selectable ending."
+}

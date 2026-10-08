@@ -31,7 +31,14 @@ import {
   NARRATIVE_CHAPTERS,
   ORDERED_CHAPTER_IDS,
   ECHO_NARRATIVE_MEMORIES,
+  getChapter06Content,
 } from '../types/phase08';
+import {
+  type ParadoxState,
+  type ParadoxEnding,
+  PARADOX_SEQUENCES,
+  ENDINGS_CONFIG,
+} from '../types/phase09';
 
 export type WorldMode =
   | 'chamber'
@@ -129,13 +136,56 @@ class ChronosStore {
     chapterId?: NarrativeChapterId;
   } | null = null;
 
+  // Phase 09 The Paradox Finale
+  public paradoxState: ParadoxState = 'inactive';
+  public selectedEnding: ParadoxEnding | null = null;
+  public isFinaleCompleted = false;
+  public paradoxSequenceIndex = 0;
+
   private readonly ECHOES_STORAGE_KEY = 'chronos_discovered_echoes';
   private readonly NARRATIVE_STORAGE_KEY = 'chronos_narrative_progress';
+  private readonly PARADOX_STORAGE_KEY = 'chronos_paradox_progress';
 
   constructor() {
     if (typeof window !== 'undefined') {
       this.loadDiscoveredEchoes();
       this.loadNarrativeProgress();
+      this.loadParadoxProgress();
+    }
+  }
+
+  public loadParadoxProgress(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem(this.PARADOX_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        if (parsed.selectedEnding === 'restore_time' || parsed.selectedEnding === 'explore_unknown') {
+          this.selectedEnding = parsed.selectedEnding;
+        }
+        if (typeof parsed.isFinaleCompleted === 'boolean') {
+          this.isFinaleCompleted = parsed.isFinaleCompleted;
+        }
+        this.notify();
+      }
+    } catch {
+      // Safe fallback
+    }
+  }
+
+  public saveParadoxProgress(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(
+        this.PARADOX_STORAGE_KEY,
+        JSON.stringify({
+          selectedEnding: this.selectedEnding,
+          isFinaleCompleted: this.isFinaleCompleted,
+        })
+      );
+    } catch {
+      // Safe fallback
     }
   }
 
@@ -541,7 +591,14 @@ class ChronosStore {
     if (this.discoveredEchoes.has('echo-05-signal')) {
       chapters.add('ch-05-revelation');
     }
-    if (this.discoveredEchoes.size === 5) {
+    // Fixed final-warning progression:
+    // Players with all five Echoes receive the complete reconstructed warning.
+    // Players without all five Echoes can still access the primary finale with a shortened revelation.
+    if (
+      this.discoveredEchoes.size > 0 ||
+      this.paradoxState !== 'inactive' ||
+      this.isFinaleCompleted
+    ) {
       chapters.add('ch-06-warning');
     }
 
@@ -594,6 +651,132 @@ class ChronosStore {
 
   public getDiscoveredEchoesCount(): number {
     return this.discoveredEchoes.size;
+  }
+
+  // =========================================================================
+  // Phase 09: The Paradox Finale Engine
+  // =========================================================================
+  public setParadoxState(state: ParadoxState): void {
+    if (this.paradoxState !== state) {
+      this.paradoxState = state;
+      this.checkNarrativeProgression();
+      this.notify();
+    }
+  }
+
+  public startParadoxFinale(): void {
+    this.paradoxState = 'awakening';
+    this.paradoxSequenceIndex = 0;
+    this.isJournalOpen = false;
+    this.activeEchoModal = null;
+    this.activeEchoMemory = null;
+    this.experienceMode = 'story';
+
+    // Sequence 01 begins in City at Chronos Plaza
+    this.worldMode = 'city';
+    this.currentSegment = 'grand-arrival';
+    this.setJourneyProgress(0.0);
+
+    const seq = PARADOX_SEQUENCES[0];
+    if (seq) {
+      this.triggerTransmission('OBSERVER 07', seq.transmissionLines, 'ch-06-warning');
+    }
+    this.checkNarrativeProgression();
+    this.notify();
+  }
+
+  public setParadoxSequenceIndex(idx: number): void {
+    const clamped = Math.max(0, Math.min(4, idx));
+    this.paradoxSequenceIndex = clamped;
+
+    const states: ParadoxState[] = [
+      'awakening',
+      'unstable',
+      'converging',
+      'revelation',
+      'awaiting-choice',
+    ];
+    this.paradoxState = states[clamped];
+
+    const seq = PARADOX_SEQUENCES[clamped];
+    if (seq) {
+      if (seq.targetWorld === 'chamber') {
+        this.worldMode = 'chamber';
+      } else if (seq.targetWorld === 'city') {
+        this.worldMode = 'city';
+      }
+      this.triggerTransmission('OBSERVER 07', seq.transmissionLines, 'ch-06-warning');
+    }
+    this.checkNarrativeProgression();
+    this.notify();
+  }
+
+  public nextParadoxSequence(): void {
+    if (this.paradoxSequenceIndex < 4) {
+      this.setParadoxSequenceIndex(this.paradoxSequenceIndex + 1);
+    }
+  }
+
+  public prevParadoxSequence(): void {
+    if (this.paradoxSequenceIndex > 0) {
+      this.setParadoxSequenceIndex(this.paradoxSequenceIndex - 1);
+    }
+  }
+
+  public selectEnding(ending: ParadoxEnding): void {
+    this.selectedEnding = ending;
+    this.notify();
+  }
+
+  public confirmEnding(): void {
+    if (!this.selectedEnding) return;
+    this.paradoxState = 'resolving';
+    this.notify();
+
+    setTimeout(() => {
+      this.paradoxState = 'completed';
+      this.isFinaleCompleted = true;
+      this.saveParadoxProgress();
+
+      if (this.selectedEnding === 'restore_time') {
+        // Stabilize timeline to 2026 present
+        this.setActiveEra('the-present');
+        this.setTimelinePosition(0.75);
+        this.worldMode = 'city';
+        this.triggerTransmission('OBSERVER 07', [
+          'CHRONOS CORE HARMONIC DRIFT TERMINATED.',
+          'THE FIVE TEMPORAL FRACTURES HAVE BEEN SEALED.',
+          'TIME IS WHOLE AGAIN. AETERNUM REMEMBERS.',
+        ]);
+      } else {
+        // Explore the unknown: free exploration across eras
+        this.worldMode = 'city';
+        this.experienceMode = 'explore';
+        this.triggerTransmission('OBSERVER 07', [
+          'QUANTUM BEACON ONLINE. TEMPORAL BRIDGES REMAIN OPEN.',
+          'UNRESTRICTED CROSS-ERA NAVIGATION INITIALIZED.',
+          'THE FUTURE IS UNWRITTEN. YOUR JOURNEY CONTINUES.',
+        ]);
+      }
+      this.notify();
+    }, 1200);
+  }
+
+  public cancelParadoxFinale(): void {
+    this.paradoxState = 'inactive';
+    this.paradoxSequenceIndex = 0;
+    this.dismissTransmission();
+    this.notify();
+  }
+
+  public resetFinale(): void {
+    this.paradoxState = 'inactive';
+    this.selectedEnding = null;
+    this.isFinaleCompleted = false;
+    this.paradoxSequenceIndex = 0;
+    this.saveParadoxProgress();
+    this.dismissTransmission();
+    this.notify();
   }
 }
 

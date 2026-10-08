@@ -38,7 +38,12 @@ export function InnerRing() {
 
   useFrame((_, delta) => {
     // Read from store directly (0 React reconciliations)
-    const speedMult = 1.0 + chronosStore.activationProgress * 3.5;
+    const isUnstable =
+      chronosStore.paradoxState === 'unstable' ||
+      chronosStore.paradoxState === 'revelation' ||
+      chronosStore.paradoxState === 'converging';
+    const paradoxMultiplier = isUnstable ? 3.0 : 1.0;
+    const speedMult = (1.0 + chronosStore.activationProgress * 3.5) * paradoxMultiplier;
 
     if (ring1Ref.current) {
       ring1Ref.current.rotation.y += delta * 0.12 * speedMult;

@@ -52,45 +52,54 @@ export function EnergySphere() {
 
   useFrame((state, delta) => {
     const actProgress = chronosStore.activationProgress;
+    const isUnstable =
+      chronosStore.paradoxState === 'unstable' ||
+      chronosStore.paradoxState === 'revelation' ||
+      chronosStore.paradoxState === 'converging';
+    const paradoxMultiplier = isUnstable ? 2.5 : 1.0;
+
     const t = state.clock.getElapsedTime();
-    const pulseSpeed = 2.5 + actProgress * 5.0;
-    const basePulse = Math.sin(t * pulseSpeed) * 0.05;
-    const scale = (1.0 + basePulse) * (1.0 + actProgress * 0.3);
+    const pulseSpeed = (2.5 + actProgress * 5.0) * paradoxMultiplier;
+    const basePulse = Math.sin(t * pulseSpeed) * (isUnstable ? 0.12 : 0.05);
+    const scale = (1.0 + basePulse) * (1.0 + actProgress * 0.3 + (isUnstable ? 0.2 : 0));
 
     if (coreRef.current) {
       coreRef.current.scale.set(scale, scale, scale);
     }
 
     if (coronaRef.current) {
-      coronaRef.current.rotation.y += delta * 0.6;
-      coronaRef.current.rotation.z += delta * 0.45;
+      coronaRef.current.rotation.y += delta * 0.6 * paradoxMultiplier;
+      coronaRef.current.rotation.z += delta * 0.45 * paradoxMultiplier;
       const coronaScale = scale * 1.35;
       coronaRef.current.scale.set(coronaScale, coronaScale, coronaScale);
     }
 
     if (ringArcRef1.current) {
-      ringArcRef1.current.rotation.x += delta * (0.9 + actProgress * 2.2);
-      ringArcRef1.current.rotation.y += delta * 0.7;
+      ringArcRef1.current.rotation.x += delta * (0.9 + actProgress * 2.2) * paradoxMultiplier;
+      ringArcRef1.current.rotation.y += delta * 0.7 * paradoxMultiplier;
     }
 
     if (ringArcRef2.current) {
-      ringArcRef2.current.rotation.y -= delta * (1.1 + actProgress * 2.5);
-      ringArcRef2.current.rotation.z += delta * 0.55;
+      ringArcRef2.current.rotation.y -= delta * (1.1 + actProgress * 2.5) * paradoxMultiplier;
+      ringArcRef2.current.rotation.z += delta * 0.55 * paradoxMultiplier;
     }
 
-    // Expanding temporal energy shockwave ring during activation
+    // Expanding temporal energy shockwave ring during activation & paradox instability
     if (pulseWaveRef.current) {
-      const wavePhase = (t * (1.2 + actProgress * 2.8)) % 1;
-      const waveScale = 1.0 + wavePhase * 4.2;
+      const shockwaveSpeed = isUnstable ? 3.5 : 1.2 + actProgress * 2.8;
+      const wavePhase = (t * shockwaveSpeed) % 1;
+      const waveScale = 1.0 + wavePhase * (isUnstable ? 6.5 : 4.2);
       pulseWaveRef.current.scale.set(waveScale, waveScale, waveScale);
-      waveMat.opacity = (1 - wavePhase) * (0.25 + actProgress * 0.65);
+      waveMat.opacity = (1 - wavePhase) * (0.25 + actProgress * 0.65 + (isUnstable ? 0.4 : 0));
     }
 
     if (coreLightRef.current) {
-      coreLightRef.current.intensity = (7.5 + Math.sin(t * 3.5) * 0.8) * (1.0 + actProgress * 2.2);
+      const baseLight = (7.5 + Math.sin(t * 3.5) * 0.8) * (1.0 + actProgress * 2.2);
+      coreLightRef.current.intensity = isUnstable ? baseLight * 1.8 : baseLight;
     }
     if (ambientGlowRef.current) {
-      ambientGlowRef.current.intensity = (3.5 + Math.cos(t * 2.0) * 0.5) * (1.0 + actProgress * 1.5);
+      const baseAmb = (3.5 + Math.cos(t * 2.0) * 0.5) * (1.0 + actProgress * 1.5);
+      ambientGlowRef.current.intensity = isUnstable ? baseAmb * 1.5 : baseAmb;
     }
   });
 

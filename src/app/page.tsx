@@ -19,6 +19,9 @@ import { CityUI } from '@/components/ui/CityUI';
 import { AtmosphereOverlay } from '@/components/ui/AtmosphereOverlay';
 import { DebugPanel } from '@/components/ui/DebugPanel';
 import { ObserverTransmissionHUD } from '@/components/ui/ObserverTransmissionHUD';
+import { ParadoxSequenceHUD } from '@/components/ui/ParadoxSequenceHUD';
+import { FinalChoiceModal } from '@/components/ui/FinalChoiceModal';
+import { EpilogueOverlay } from '@/components/ui/EpilogueOverlay';
 
 // Dynamically import Scene to eliminate SSR hydration discrepancies with WebGL Canvas
 const Scene = dynamic(
@@ -176,6 +179,31 @@ export default function ChronosPage() {
 
     if (params.get('lens') === 'true') {
       chronosStore.openTemporalLens('plaza-tower');
+    }
+
+    const urlFinale = params.get('finale') || params.get('paradox');
+    if (urlFinale === 'true' || urlFinale === '1') {
+      const urlSeq = params.get('seq') || params.get('beat');
+      if (urlSeq) {
+        const seqNum = parseInt(urlSeq, 10);
+        if (!isNaN(seqNum) && seqNum >= 0 && seqNum <= 4) {
+          chronosStore.startParadoxFinale();
+          chronosStore.setParadoxSequenceIndex(seqNum);
+        } else {
+          chronosStore.startParadoxFinale();
+        }
+      } else {
+        chronosStore.startParadoxFinale();
+      }
+    }
+
+    const urlEnding = params.get('ending');
+    if (urlEnding === 'restore' || urlEnding === 'restore_time') {
+      chronosStore.selectEnding('restore_time');
+      chronosStore.confirmEnding();
+    } else if (urlEnding === 'explore' || urlEnding === 'explore_unknown') {
+      chronosStore.selectEnding('explore_unknown');
+      chronosStore.confirmEnding();
     }
 
     return () => {
@@ -372,6 +400,9 @@ export default function ChronosPage() {
         ) : (
           <>
             <ObserverTransmissionHUD />
+            <ParadoxSequenceHUD />
+            <FinalChoiceModal />
+            <EpilogueOverlay />
             <CinematicUI
               activationState={activationState}
               currentShot={currentShot}

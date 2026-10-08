@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { gsap } from '@/lib/gsap';
 import { CINEMATIC_SHOTS, type CinematicShotId } from '@/lib/constants';
 import { chronosStore } from '@/lib/chronosStore';
+import { PARADOX_SEQUENCES } from '@/types/phase09';
 
 interface CinematicCameraRigProps {
   currentShot: CinematicShotId;
@@ -60,17 +61,35 @@ export function CinematicCameraRig({
     // Mobile aspect ratio compensation (backs up along Z and reduces X width)
     const camZMultiplier = isMobile ? 1.25 : 1.0;
     const camXMultiplier = isMobile ? 0.7 : 1.0;
-    const targetCamPos = {
+    let targetCamPos = {
       x: config.cameraPosition[0] * camXMultiplier,
       y: config.cameraPosition[1],
       z: config.cameraPosition[2] * camZMultiplier,
     };
-    const targetLookAtPos = {
+    let targetLookAtPos = {
       x: config.targetPosition[0],
       y: config.targetPosition[1],
       z: config.targetPosition[2],
     };
-    const targetFov = isMobile ? config.fov + 8 : config.fov;
+    let targetFov = isMobile ? config.fov + 8 : config.fov;
+
+    // Check for active Paradox finale chamber sequence
+    if (chronosStore.paradoxState !== 'inactive') {
+      const seqCfg = PARADOX_SEQUENCES[chronosStore.paradoxSequenceIndex];
+      if (seqCfg && seqCfg.targetWorld === 'chamber') {
+        targetCamPos = {
+          x: seqCfg.cameraShot.position[0] * camXMultiplier,
+          y: seqCfg.cameraShot.position[1],
+          z: seqCfg.cameraShot.position[2] * camZMultiplier,
+        };
+        targetLookAtPos = {
+          x: seqCfg.cameraShot.target[0],
+          y: seqCfg.cameraShot.target[1],
+          z: seqCfg.cameraShot.target[2],
+        };
+        targetFov = isMobile ? seqCfg.cameraShot.fov + 6 : seqCfg.cameraShot.fov;
+      }
+    }
 
     // First render immediate placement without tween delay
     if (isFirstRender.current) {

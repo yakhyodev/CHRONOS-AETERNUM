@@ -13,6 +13,8 @@ import {
   getTimelineStopFromEra,
 } from '../src/types/phase05';
 import { isWebGLAvailable } from '../src/lib/webglDetect';
+import { getChapter06Content } from '../src/types/phase08';
+import { PARADOX_SEQUENCES, ENDINGS_CONFIG } from '../src/types/phase09';
 
 describe('CHRONOS — Aeternum State & Timeline Engine', () => {
   beforeEach(() => {
@@ -698,15 +700,21 @@ describe('CHRONOS — Aeternum State & Timeline Engine', () => {
       chronosStore.setActiveEra('the-next-age');
       chronosStore.discoverEcho('echo-05-signal');
       expect(chronosStore.unlockedChapters.has('ch-05-revelation')).toBe(true);
-      // Chapter 06 is not yet unlocked because Echo 03 is still missing
-      expect(chronosStore.unlockedChapters.has('ch-06-warning')).toBe(false);
+      // Chapter 06 is also accessible with shortened revelation for players without all 5 echoes
+      expect(chronosStore.unlockedChapters.has('ch-06-warning')).toBe(true);
 
-      // Discover Echo 03 in the-machine -> All 5 echoes discovered -> Unlocks Chapter 06 (The Warning)
+      // Discover Echo 03 in the-machine -> All 5 echoes discovered
       chronosStore.setActiveEra('the-machine');
       chronosStore.discoverEcho('echo-03-metal');
       expect(chronosStore.getDiscoveredEchoesCount()).toBe(5);
       expect(chronosStore.unlockedChapters.has('ch-06-warning')).toBe(true);
       expect(chronosStore.unlockedChaptersList).toHaveLength(6);
+
+      // Reconstructed warning for 5/5 echoes vs shortened revelation for <5
+      expect(getChapter06Content(5).isComplete).toBe(true);
+      expect(getChapter06Content(5).revelationText).toContain('Complete reconstructed warning');
+      expect(getChapter06Content(3).isComplete).toBe(false);
+      expect(getChapter06Content(3).revelationText).toContain('Shortened revelation');
     });
 
     it('triggers and dismisses Observer 07 transmissions', () => {
@@ -729,6 +737,110 @@ describe('CHRONOS — Aeternum State & Timeline Engine', () => {
 
       chronosStore.closeEchoMemory();
       expect(chronosStore.activeEchoMemory).toBeNull();
+    });
+  });
+
+  describe('Phase 09 — The Paradox Finale & Ending Choices', () => {
+    beforeEach(() => {
+      chronosStore.resetFinale();
+    });
+
+    it('initializes Paradox Engine in inactive state', () => {
+      expect(chronosStore.paradoxState).toBe('inactive');
+      expect(chronosStore.selectedEnding).toBeNull();
+      expect(chronosStore.isFinaleCompleted).toBe(false);
+      expect(chronosStore.paradoxSequenceIndex).toBe(0);
+    });
+
+    it('starts Paradox Finale at Sequence 01 (The Fracture Begins) in Chronos Plaza', () => {
+      chronosStore.startParadoxFinale();
+      expect(chronosStore.paradoxState).toBe('awakening');
+      expect(chronosStore.paradoxSequenceIndex).toBe(0);
+      expect(chronosStore.worldMode).toBe('city');
+      expect(chronosStore.currentSegment).toBe('grand-arrival');
+      expect(chronosStore.activeTransmission?.sender).toBe('OBSERVER 07');
+      expect(chronosStore.unlockedChapters.has('ch-06-warning')).toBe(true);
+    });
+
+    it('advances through all 5 sequences deterministically', () => {
+      chronosStore.startParadoxFinale();
+
+      // Sequence 02: The Core Unstable in Chamber
+      chronosStore.nextParadoxSequence();
+      expect(chronosStore.paradoxSequenceIndex).toBe(1);
+      expect(chronosStore.paradoxState).toBe('unstable');
+      expect(chronosStore.worldMode).toBe('chamber');
+
+      // Sequence 03: Five Eras Collide in City
+      chronosStore.nextParadoxSequence();
+      expect(chronosStore.paradoxSequenceIndex).toBe(2);
+      expect(chronosStore.paradoxState).toBe('converging');
+      expect(chronosStore.worldMode).toBe('city');
+
+      // Sequence 04: The Revelation in Chamber
+      chronosStore.nextParadoxSequence();
+      expect(chronosStore.paradoxSequenceIndex).toBe(3);
+      expect(chronosStore.paradoxState).toBe('revelation');
+      expect(chronosStore.worldMode).toBe('chamber');
+
+      // Sequence 05: The Final Choice
+      chronosStore.nextParadoxSequence();
+      expect(chronosStore.paradoxSequenceIndex).toBe(4);
+      expect(chronosStore.paradoxState).toBe('awaiting-choice');
+    });
+
+    it('executes RESTORE TIME ending and stabilizes timeline', async () => {
+      chronosStore.startParadoxFinale();
+      chronosStore.setParadoxSequenceIndex(4);
+      chronosStore.selectEnding('restore_time');
+      expect(chronosStore.selectedEnding).toBe('restore_time');
+
+      chronosStore.confirmEnding();
+      expect(chronosStore.paradoxState).toBe('resolving');
+
+      // Wait for resolution transition
+      await new Promise((r) => setTimeout(r, 1300));
+      expect(chronosStore.paradoxState).toBe('completed');
+      expect(chronosStore.isFinaleCompleted).toBe(true);
+      expect(chronosStore.activeEra).toBe('the-present');
+      expect(chronosStore.worldMode).toBe('city');
+    });
+
+    it('executes EXPLORE THE UNKNOWN ending and unlocks free exploration', async () => {
+      chronosStore.startParadoxFinale();
+      chronosStore.setParadoxSequenceIndex(4);
+      chronosStore.selectEnding('explore_unknown');
+      expect(chronosStore.selectedEnding).toBe('explore_unknown');
+
+      chronosStore.confirmEnding();
+      expect(chronosStore.paradoxState).toBe('resolving');
+
+      // Wait for resolution transition
+      await new Promise((r) => setTimeout(r, 1300));
+      expect(chronosStore.paradoxState).toBe('completed');
+      expect(chronosStore.isFinaleCompleted).toBe(true);
+      expect(chronosStore.experienceMode).toBe('explore');
+      expect(chronosStore.worldMode).toBe('city');
+    });
+
+    it('cancels and resets finale state cleanly without timeline corruption', () => {
+      chronosStore.startParadoxFinale();
+      chronosStore.nextParadoxSequence();
+      expect(chronosStore.paradoxState).toBe('unstable');
+
+      chronosStore.cancelParadoxFinale();
+      expect(chronosStore.paradoxState).toBe('inactive');
+      expect(chronosStore.paradoxSequenceIndex).toBe(0);
+
+      chronosStore.resetFinale();
+      expect(chronosStore.selectedEnding).toBeNull();
+      expect(chronosStore.isFinaleCompleted).toBe(false);
+    });
+
+    it('defines exactly two approved canonical endings', () => {
+      expect(Object.keys(ENDINGS_CONFIG)).toEqual(['restore_time', 'explore_unknown']);
+      expect(ENDINGS_CONFIG.restore_time.title).toBe('RESTORE TIME');
+      expect(ENDINGS_CONFIG.explore_unknown.title).toBe('EXPLORE THE UNKNOWN');
     });
   });
 });

@@ -151,6 +151,38 @@ export const ORDERED_CHAPTER_IDS: NarrativeChapterId[] = [
   'ch-06-warning',
 ];
 
+export function getChapter06Content(echoesCount: number): {
+  transmissionLines: string[];
+  revelationText: string;
+  isComplete: boolean;
+} {
+  if (echoesCount >= 5) {
+    return {
+      isComplete: true,
+      transmissionLines: [
+        'OBSERVER 07 // COMPLETE CONVERGENCE (5/5 ECHOES)',
+        'ALL FIVE TEMPORAL VECTORS ALIGNED IN REGISTER.',
+        'THE REALITY FRACTURE IS GROWING AT THE SEAMS.',
+        '"THE PAST REMEMBERS. THE FUTURE IS WAITING."',
+      ],
+      revelationText:
+        'Complete reconstructed warning: The Chronos Core was engineered in 2200 CE to prevent total entropy collapse. All five temporal vectors confirm the timeline fracture must now be resolved.',
+    };
+  }
+
+  return {
+    isComplete: false,
+    transmissionLines: [
+      `OBSERVER 07 // PARTIAL CONVERGENCE (${echoesCount}/5 ECHOES)`,
+      'TEMPORAL ARCHIVE INCOMPLETE, BUT HARMONIC CASCADE DETECTED.',
+      'THE TIMELINE FRACTURE THREATENS RUNAWAY COLLAPSE.',
+      '"THE CORE CANNOT SUSTAIN THIS FRACTURE WITHOUT A RESOLUTION."',
+    ],
+    revelationText:
+      `Shortened revelation: With ${echoesCount}/5 Echoes recovered, the archival record is partial. Yet the Chronos Core has reached critical instability. You may initiate the primary finale immediately.`,
+  };
+}
+
 export interface EchoNarrativeMemory {
   echoId: TemporalEchoId;
   chapterId: NarrativeChapterId;

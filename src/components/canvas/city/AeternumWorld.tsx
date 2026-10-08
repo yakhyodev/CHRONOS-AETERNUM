@@ -13,6 +13,7 @@ import { IndustrialQuarter } from './IndustrialQuarter';
 import { Observatory } from './Observatory';
 import { TemporalEchoesLayer } from './TemporalEchoesLayer';
 import { TemporalLensGhost } from './TemporalLensGhost';
+import { TemporalFracture } from './TemporalFracture';
 import { chronosStore } from '@/lib/chronosStore';
 
 interface AeternumWorldProps {
@@ -90,7 +91,10 @@ export function AeternumWorld({ qualityPreset = 'high' }: AeternumWorldProps) {
       {/* 9. Phase 07: Temporal Lens Holographic Alternate-Era Preview */}
       <TemporalLensGhost />
 
-      {/* 10. Atmospheric Sunset Floating Embers */}
+      {/* 10. Phase 09: Paradox Finale Temporal Fracture (Five Eras Collision) */}
+      <TemporalFracture qualityPreset={qualityPreset} />
+
+      {/* 11. Atmospheric Sunset Floating Embers */}
       <points ref={hazePointsRef} material={hazeMaterial}>
         <bufferGeometry>
           <bufferAttribute

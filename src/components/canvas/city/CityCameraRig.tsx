@@ -14,6 +14,7 @@ import {
 } from '@/types/phase07';
 import { chronosStore } from '@/lib/chronosStore';
 import type { CityViewId } from '@/types/phase03';
+import { PARADOX_SEQUENCES, ENDINGS_CONFIG } from '@/types/phase09';
 
 interface CityCameraRigProps {
   currentView?: CityViewId;
@@ -204,6 +205,27 @@ export function CityCameraRig({
     blendedCamPos.lerpVectors(sampledStoryPos, exploreCamPos, t);
     blendedTargetPos.lerpVectors(sampledStoryTarget, exploreTargetPos, t);
 
+    // 3.5 PARADOX FINALE & ENDINGS CAMERA DIRECTING
+    let targetFov = isExplore ? 50.0 : clampedProgress > 0.35 && clampedProgress < 0.6 ? 56.0 : 53.0;
+
+    if (chronosStore.paradoxState !== 'inactive') {
+      const seqCfg = PARADOX_SEQUENCES[chronosStore.paradoxSequenceIndex];
+      if (seqCfg && seqCfg.targetWorld === 'city') {
+        const shot = seqCfg.cameraShot;
+        blendedCamPos.set(shot.position[0], shot.position[1], shot.position[2]);
+        blendedTargetPos.set(shot.target[0], shot.target[1], shot.target[2]);
+        targetFov = shot.fov;
+      }
+    } else if (chronosStore.isFinaleCompleted && chronosStore.selectedEnding) {
+      const endCfg = ENDINGS_CONFIG[chronosStore.selectedEnding];
+      if (endCfg) {
+        const shot = endCfg.cameraEndShot;
+        blendedCamPos.set(shot.position[0], shot.position[1], shot.position[2]);
+        blendedTargetPos.set(shot.target[0], shot.target[1], shot.target[2]);
+        targetFov = shot.fov;
+      }
+    }
+
     // 4. Subtle, bounded breathing & mouse parallax (non-cumulative)
     const time = state.clock.getElapsedTime();
     const motionMultiplier = reducedMotion ? 0.05 : 1.0;
@@ -222,8 +244,7 @@ export function CityCameraRig({
     currentLookAt.current.lerp(blendedTargetPos, Math.min(delta * 6.0, 0.4));
     camera.lookAt(currentLookAt.current);
 
-    // 6. Dynamic FOV: 52 in explore/inspect, dynamic 50-56 along flight path
-    const targetFov = isExplore ? 50.0 : clampedProgress > 0.35 && clampedProgress < 0.6 ? 56.0 : 53.0;
+    // 6. Dynamic FOV
     if ('fov' in camera && Math.abs(camera.fov - targetFov) > 0.05) {
       camera.fov += (targetFov - camera.fov) * Math.min(delta * 3.0, 0.15);
       camera.updateProjectionMatrix();

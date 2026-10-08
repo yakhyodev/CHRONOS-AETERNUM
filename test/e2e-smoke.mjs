@@ -122,7 +122,7 @@ async function runSmokeTests() {
       throw new Error(`Phase 07 manifest.json returned ${manifest07.statusCode}`);
     }
     // 10. Test Phase 08 Observer 07 Story Assets & Manifest
-    console.log('[10/10] Verifying Phase 08 story assets & manifest...');
+    console.log('[10/11] Verifying Phase 08 story assets & manifest...');
     const storyArt = await checkUrl(`${baseUrl}/chronos/phase08/00-phase08-story-art-direction.jpg`);
     if (storyArt.statusCode !== 200) {
       throw new Error(`Phase 08 art direction asset returned ${storyArt.statusCode}`);
@@ -133,7 +133,27 @@ async function runSmokeTests() {
     }
     console.log('  ✓ Phase 08 Observer 07 narrative assets verified');
 
-    console.log('\nALL 10 E2E SMOKE TESTS PASSED CLEANLY.\n');
+    // 11. Test Phase 09 Paradox Finale Assets & Query Routing
+    console.log('[11/11] Verifying Phase 09 Paradox finale assets, endings & manifest...');
+    const paradoxArt = await checkUrl(`${baseUrl}/chronos/phase09/00-paradox-art-direction.jpg`);
+    if (paradoxArt.statusCode !== 200) {
+      throw new Error(`Phase 09 paradox art direction asset returned ${paradoxArt.statusCode}`);
+    }
+    const manifest09 = await checkUrl(`${baseUrl}/chronos/phase09/manifest.json`);
+    if (manifest09.statusCode !== 200) {
+      throw new Error(`Phase 09 manifest.json returned ${manifest09.statusCode}`);
+    }
+    const finaleRoute = await checkUrl(`${baseUrl}?finale=true&seq=0`);
+    if (finaleRoute.statusCode !== 200) {
+      throw new Error(`Finale query routing failed with ${finaleRoute.statusCode}`);
+    }
+    const endingRoute = await checkUrl(`${baseUrl}?ending=restore`);
+    if (endingRoute.statusCode !== 200) {
+      throw new Error(`Ending query routing failed with ${endingRoute.statusCode}`);
+    }
+    console.log('  ✓ Phase 09 Paradox Finale assets, query routing & endings verified');
+
+    console.log('\nALL 11 E2E SMOKE TESTS PASSED CLEANLY.\n');
     process.exit(0);
   } catch (err) {
     console.error('Smoke Test Failed:', err.message);

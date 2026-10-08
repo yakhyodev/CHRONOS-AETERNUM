@@ -114,14 +114,72 @@ export function DebugPanel({
               ))}
             </div>
           </div>
-          <div className="mt-2.5 pt-2 border-t border-white/10 flex gap-1">
+          <div className="mt-2.5 pt-2 border-t border-white/10 flex flex-col gap-1.5">
             <button
               type="button"
               onClick={onToggleActive}
-              className="flex-1 rounded border border-[#D4AF37]/40 bg-[#D4AF37]/10 py-1 text-center text-[9px] text-[#F5F3ED]"
+              className="w-full rounded border border-[#D4AF37]/40 bg-[#D4AF37]/10 py-1 text-center text-[9px] text-[#F5F3ED]"
             >
               Toggle Activation
             </button>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => chronosStore.startParadoxFinale()}
+                className="flex-1 rounded border border-amber-500/50 bg-amber-500/20 py-1 text-center text-[9px] text-amber-200"
+              >
+                Finale Beat 1
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  chronosStore.startParadoxFinale();
+                  chronosStore.setParadoxSequenceIndex(2);
+                }}
+                className="flex-1 rounded border border-cyan-500/50 bg-cyan-500/20 py-1 text-center text-[9px] text-cyan-200"
+              >
+                Eras Collide
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  chronosStore.startParadoxFinale();
+                  chronosStore.setParadoxSequenceIndex(4);
+                }}
+                className="flex-1 rounded border border-purple-500/50 bg-purple-500/20 py-1 text-center text-[9px] text-purple-200"
+              >
+                Choice
+              </button>
+            </div>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  chronosStore.selectEnding('restore_time');
+                  chronosStore.confirmEnding();
+                }}
+                className="flex-1 rounded bg-[#D4AF37]/20 border border-[#D4AF37]/50 py-0.5 text-[8px] text-[#FFE8B5]"
+              >
+                Restore Time
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  chronosStore.selectEnding('explore_unknown');
+                  chronosStore.confirmEnding();
+                }}
+                className="flex-1 rounded bg-cyan-500/20 border border-cyan-400/50 py-0.5 text-[8px] text-cyan-200"
+              >
+                Explore Future
+              </button>
+              <button
+                type="button"
+                onClick={() => chronosStore.resetFinale()}
+                className="rounded bg-white/10 px-1 py-0.5 text-[8px] text-zinc-400"
+              >
+                Reset
+              </button>
+            </div>
           </div>
         </div>
       )}

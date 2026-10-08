@@ -19,6 +19,9 @@ import { DiscoveryJournal } from './DiscoveryJournal';
 import { TemporalLensHUD } from './TemporalLensHUD';
 import { CinematicMemoryModal } from './CinematicMemoryModal';
 import { ObserverTransmissionHUD } from './ObserverTransmissionHUD';
+import { ParadoxSequenceHUD } from './ParadoxSequenceHUD';
+import { FinalChoiceModal } from './FinalChoiceModal';
+import { EpilogueOverlay } from './EpilogueOverlay';
 
 interface CityUIProps {
   onSelectSegment: (segmentId: CinematicSegmentId) => void;
@@ -194,6 +197,19 @@ export function CityUI({
               ECHOES {discoveredEchoesCount}/5
             </span>
           </button>
+
+          {/* Paradox Finale Gateway Trigger Pill */}
+          <button
+            type="button"
+            onClick={() => chronosStore.startParadoxFinale()}
+            className="flex items-center gap-2 rounded-full border border-[#D4AF37]/70 bg-[#D4AF37]/15 hover:bg-[#D4AF37]/30 px-3.5 py-1.5 backdrop-blur-md transition shadow-[0_0_15px_rgba(212,175,55,0.35)] focus:outline-none"
+            title="Initiate Phase 09 Paradox Finale"
+          >
+            <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping" />
+            <span className="font-cinzel text-[10px] font-bold tracking-widest text-[#FFE8B5]">
+              PARADOX FINALE
+            </span>
+          </button>
         </div>
 
         {/* Return to Chamber Button */}
@@ -255,6 +271,9 @@ export function CityUI({
       <ObserverTransmissionHUD />
       <CinematicMemoryModal />
       <DiscoveryJournal />
+      <ParadoxSequenceHUD />
+      <FinalChoiceModal />
+      <EpilogueOverlay />
 
       {/* ================================================================== */}
       {/* 5. BOTTOM CONTROLS: TIME SCRUBBER & MODE-SPECIFIC NAVIGATION */}

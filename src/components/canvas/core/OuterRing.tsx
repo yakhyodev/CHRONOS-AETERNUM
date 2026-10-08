@@ -42,7 +42,12 @@ export function OuterRing() {
   useFrame((_, delta) => {
     if (slowPrecessionRef.current) {
       const actProgress = chronosStore.activationProgress;
-      slowPrecessionRef.current.rotation.z += delta * (0.02 + actProgress * 0.08);
+      const isUnstable =
+        chronosStore.paradoxState === 'unstable' ||
+        chronosStore.paradoxState === 'revelation' ||
+        chronosStore.paradoxState === 'converging';
+      const paradoxSpeed = isUnstable ? 0.35 : 0;
+      slowPrecessionRef.current.rotation.z += delta * (0.02 + actProgress * 0.08 + paradoxSpeed);
     }
   });
 
