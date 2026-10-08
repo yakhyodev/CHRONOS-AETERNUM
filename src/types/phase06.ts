@@ -5,7 +5,7 @@
  */
 import * as THREE from 'three';
 import { type HistoricalEraId } from './phase03';
-import { TEMPORAL_ERAS, ORDERED_ERAS } from './phase05';
+import { TEMPORAL_ERAS } from './phase05';
 
 export interface TemporalMorphInterval {
   eraA: HistoricalEraId;

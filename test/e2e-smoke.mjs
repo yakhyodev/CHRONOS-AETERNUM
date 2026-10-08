@@ -1,5 +1,6 @@
 // E2E Smoke test script for CHRONOS — Aeternum
 import http from 'http';
+import { spawn, execSync } from 'child_process';
 
 function checkUrl(url) {
   return new Promise((resolve, reject) => {
@@ -11,13 +12,57 @@ function checkUrl(url) {
   });
 }
 
+async function ensureServer(baseUrl) {
+  try {
+    const res = await checkUrl(baseUrl);
+    if (res.statusCode) return null;
+  } catch {
+    // Not running
+  }
+
+  console.log('No active server detected at http://localhost:3000. Launching Next.js server...');
+  const child = spawn('npx', ['next', 'start', '-p', '3000'], {
+    shell: true,
+    stdio: 'ignore',
+  });
+
+  const startTime = Date.now();
+  while (Date.now() - startTime < 30000) {
+    await new Promise((r) => setTimeout(r, 600));
+    try {
+      const res = await checkUrl(baseUrl);
+      if (res.statusCode === 200) {
+        console.log('✓ Next.js server ready on port 3000\n');
+        return child;
+      }
+    } catch {}
+  }
+
+  cleanupServer(child);
+  throw new Error('Timeout waiting for Next.js server to start on port 3000.');
+}
+
+function cleanupServer(child) {
+  if (!child || !child.pid) return;
+  try {
+    if (process.platform === 'win32') {
+      execSync(`taskkill /pid ${child.pid} /t /f`, { stdio: 'ignore' });
+    } else {
+      child.kill('SIGTERM');
+    }
+  } catch {}
+}
+
 async function runSmokeTests() {
   console.log('--- CHRONOS E2E SMOKE TESTS ---');
   const baseUrl = 'http://localhost:3000';
+  let serverChild = null;
 
   try {
+    serverChild = await ensureServer(baseUrl);
+
     // 1. Root page test
-    console.log('[1/7] Verifying root page response...');
+    console.log('[1/13] Verifying root page response...');
     const page = await checkUrl(baseUrl);
     if (page.statusCode !== 200) {
       throw new Error(`Expected HTTP 200, got ${page.statusCode}`);
@@ -222,10 +267,11 @@ async function runSmokeTests() {
     console.log('  ✓ Phase 11 OGG Opus audio cues & mobile performance board verified');
 
     console.log('\nALL 13 E2E SMOKE TESTS PASSED CLEANLY.\n');
-    process.exit(0);
   } catch (err) {
     console.error('Smoke Test Failed:', err.message);
-    process.exit(1);
+    process.exitCode = 1;
+  } finally {
+    cleanupServer(serverChild);
   }
 }
 

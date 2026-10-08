@@ -28,16 +28,13 @@ import { TEMPORAL_ECHOES, ORDERED_ECHO_IDS } from '../types/phase07';
 import {
   type NarrativeChapterId,
   type EchoNarrativeMemory,
-  NARRATIVE_CHAPTERS,
   ORDERED_CHAPTER_IDS,
   ECHO_NARRATIVE_MEMORIES,
-  getChapter06Content,
 } from '../types/phase08';
 import {
   type ParadoxState,
   type ParadoxEnding,
   PARADOX_SEQUENCES,
-  ENDINGS_CONFIG,
 } from '../types/phase09';
 
 export type WorldMode =

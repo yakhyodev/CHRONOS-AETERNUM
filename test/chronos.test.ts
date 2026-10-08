@@ -14,7 +14,7 @@ import {
 } from '../src/types/phase05';
 import { isWebGLAvailable } from '../src/lib/webglDetect';
 import { getChapter06Content } from '../src/types/phase08';
-import { PARADOX_SEQUENCES, ENDINGS_CONFIG } from '../src/types/phase09';
+import { ENDINGS_CONFIG } from '../src/types/phase09';
 import { audioManager } from '../src/lib/audioManager';
 
 describe('CHRONOS — Aeternum State & Timeline Engine', () => {

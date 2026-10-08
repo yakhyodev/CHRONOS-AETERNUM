@@ -1,8 +1,7 @@
 'use client';
 
-import { Suspense, useState, useEffect, useSyncExternalStore } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
+import { Suspense, useState, useEffect, useCallback, useSyncExternalStore } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { CHRONOS_PALETTE, type CinematicShotId } from '@/lib/constants';
 import {
   chronosStore,
@@ -37,6 +36,45 @@ function PerformanceOptimizer() {
   useFrame((_, delta) => {
     chronosStore.recordFrameTime(delta);
   });
+  return null;
+}
+
+/**
+ * Resilient WebGL context loss watcher with strict cleanup to prevent memory leaks and duplicate listeners
+ */
+function WebGLContextWatcher({
+  onContextLost,
+  onContextRestored,
+}: {
+  onContextLost: () => void;
+  onContextRestored: () => void;
+}) {
+  const { gl } = useThree();
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+    if (!canvas) return;
+
+    const handleLost = (e: Event) => {
+      e.preventDefault();
+      console.warn('[CHRONOS] WebGL context lost. Rendering fallback UI.');
+      onContextLost();
+    };
+
+    const handleRestored = () => {
+      console.info('[CHRONOS] WebGL context restored.');
+      onContextRestored();
+    };
+
+    canvas.addEventListener('webglcontextlost', handleLost);
+    canvas.addEventListener('webglcontextrestored', handleRestored);
+
+    return () => {
+      canvas.removeEventListener('webglcontextlost', handleLost);
+      canvas.removeEventListener('webglcontextrestored', handleRestored);
+    };
+  }, [gl, onContextLost, onContextRestored]);
+
   return null;
 }
 
@@ -118,27 +156,19 @@ export function Scene({
 
   const eraConfig = TEMPORAL_ERAS[activeEra] || TEMPORAL_ERAS['the-present'];
 
-  const handleCreated = ({ gl }: { gl: THREE.WebGLRenderer }) => {
-    const canvas = gl.domElement;
-    const handleContextLost = (event: Event) => {
-      event.preventDefault();
-      console.warn('[CHRONOS] WebGL context lost. Rendering fallback UI.');
-      setWebglSupported(false);
-    };
-    const handleContextRestored = () => {
-      console.info('[CHRONOS] WebGL context restored.');
-      setWebglSupported(true);
-    };
-    canvas.addEventListener('webglcontextlost', handleContextLost);
-    canvas.addEventListener('webglcontextrestored', handleContextRestored);
-  };
+  const handleContextLost = useCallback(() => {
+    setWebglSupported(false);
+  }, []);
+
+  const handleContextRestored = useCallback(() => {
+    setWebglSupported(true);
+  }, []);
 
   return (
     <div className={`relative w-full h-full ${className}`}>
       <Canvas
         camera={{ position: [0, 2.5, 26], fov: 54, near: 0.1, far: 500 }}
         frameloop={isPageVisible ? 'always' : 'never'}
-        onCreated={handleCreated}
         gl={{
           antialias: activeQualityKey !== 'low',
           alpha: false,
@@ -149,6 +179,10 @@ export function Scene({
         shadows={qualityConfig.shadows}
       >
         <PerformanceOptimizer />
+        <WebGLContextWatcher
+          onContextLost={handleContextLost}
+          onContextRestored={handleContextRestored}
+        />
 
         {/* Dynamic Background: Void Black in chamber, Era Sky in city */}
         <color

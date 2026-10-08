@@ -4,7 +4,6 @@ import { useMemo, useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { chronosStore } from '@/lib/chronosStore';
-import { TEMPORAL_ERAS } from '@/types/phase05';
 
 export function TemporalLensGhost() {
   const lens = chronosStore.temporalLens;
@@ -51,7 +50,6 @@ export function TemporalLensGhost() {
   if (!lens.active || !lens.landmarkId) return null;
 
   const previewEra = lens.previewEra;
-  const eraCfg = TEMPORAL_ERAS[previewEra] || TEMPORAL_ERAS['the-kingdom'];
 
   return (
     <group ref={ghostRef} name="TemporalLens_GhostOverlay">

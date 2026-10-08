@@ -3,8 +3,6 @@
  * 
  * "The Paradox Finale" — Five Eras. One Fractured Reality. The Final Choice.
  */
-import type { HistoricalEraId } from './phase03';
-
 export type ParadoxState =
   | 'inactive'
   | 'awakening'

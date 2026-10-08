@@ -2,8 +2,41 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'CHRONOS — Aeternum | Cinematic Time Exploration',
-  description: 'A cinematic, scroll-driven time exploration experience featuring a fictional city across five historical eras.',
+  title: 'CHRONOS — AETERNUM | A Cinematic Journey Through Time',
+  description:
+    'A cinematic, scroll-driven interactive exploration of the lost city of Aeternum across five historical eras, powered by WebGL and Three.js.',
+  metadataBase: new URL('https://chronos-aeternum.vercel.app'),
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/chronos/chronos-core-emblem.svg',
+  },
+  openGraph: {
+    title: 'CHRONOS — AETERNUM',
+    description: 'A Cinematic Journey Through Time across five historical eras.',
+    url: 'https://chronos-aeternum.vercel.app',
+    siteName: 'CHRONOS — Aeternum',
+    images: [
+      {
+        url: '/chronos/phase11/images/00-phase11-master-art-direction.jpg',
+        width: 1920,
+        height: 1080,
+        alt: 'CHRONOS — Aeternum Cinematic Visual Experience',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'CHRONOS — AETERNUM',
+    description: 'A Cinematic Journey Through Time across five historical eras.',
+    images: ['/chronos/phase11/images/00-phase11-master-art-direction.jpg'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

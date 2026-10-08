@@ -3,7 +3,7 @@
  * 
  * Defines historical era configurations, timeline mapping, and temporal transition state.
  */
-import { type HistoricalEraId, HISTORICAL_ERAS } from './phase03';
+import { type HistoricalEraId } from './phase03';
 
 export type { HistoricalEraId };
 

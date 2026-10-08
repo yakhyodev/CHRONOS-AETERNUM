@@ -12,12 +12,6 @@ export function FinalChoiceModal() {
     () => 'inactive' as ParadoxState
   );
 
-  const selectedEnding = useSyncExternalStore(
-    (cb) => chronosStore.subscribe(cb),
-    () => chronosStore.selectedEnding,
-    () => null as ParadoxEnding | null
-  );
-
   const [focusedChoice, setFocusedChoice] = useState<ParadoxEnding>('restore_time');
   const [showConfirmation, setShowConfirmation] = useState(false);
 
