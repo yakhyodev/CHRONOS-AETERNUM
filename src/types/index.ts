@@ -1,11 +1,21 @@
-export interface FoundationState {
-  isInitialized: boolean;
-  webglSupported: boolean;
-  fps: number;
+import type { CinematicShotId } from '@/lib/constants';
+
+export interface CoreAnimationState {
+  isActive: boolean;
+  activationProgress: number; // 0 (idle) to 1 (fully active)
+  pulseTime: number;
+  rotationSpeedMultiplier: number;
+  coreIntensity: number;
 }
 
-export interface Coordinates {
-  x: number;
-  y: number;
-  z: number;
+export interface CinematicCameraState {
+  currentShot: CinematicShotId;
+  transitionProgress: number;
+  isTransitioning: boolean;
+}
+
+export interface PerformanceSettings {
+  pixelRatio: number;
+  enableShadows: boolean;
+  reducedMotion: boolean;
 }

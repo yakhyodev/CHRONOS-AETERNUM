@@ -1,0 +1,121 @@
+'use client';
+
+import { useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
+import { CHRONOS_PALETTE } from '@/lib/constants';
+import { AncientEngravings } from './AncientEngravings';
+
+interface OuterRingProps {
+  activationProgress?: number;
+}
+
+export function OuterRing({ activationProgress = 0 }: OuterRingProps) {
+  const slowPrecessionRef = useRef<THREE.Group>(null);
+
+  useFrame((_, delta) => {
+    if (slowPrecessionRef.current) {
+      // Very slow stately celestial precession
+      slowPrecessionRef.current.rotation.z += delta * (0.02 + activationProgress * 0.08);
+    }
+  });
+
+  const bronzeMaterial = new THREE.MeshStandardMaterial({
+    color: CHRONOS_PALETTE.antiqueBronze,
+    roughness: 0.35,
+    metalness: 0.88,
+  });
+
+  const goldAccentMaterial = new THREE.MeshStandardMaterial({
+    color: CHRONOS_PALETTE.warmGold,
+    roughness: 0.28,
+    metalness: 0.92,
+  });
+
+  return (
+    <group rotation={[0.45, 0.25, -0.15]}>
+      {/* Stone & Bronze Mounting Pedestals anchoring outer ring to the dais */}
+      <group position={[0, -3.8, 0]}>
+        {/* Left Pedestal Arm */}
+        <mesh position={[-3.6, 1.2, 0]} rotation={[0, 0, -0.35]} castShadow>
+          <boxGeometry args={[0.5, 3.2, 0.6]} />
+          <primitive object={bronzeMaterial} attach="material" />
+        </mesh>
+        {/* Right Pedestal Arm */}
+        <mesh position={[3.6, 1.2, 0]} rotation={[0, 0, 0.35]} castShadow>
+          <boxGeometry args={[0.5, 3.2, 0.6]} />
+          <primitive object={bronzeMaterial} attach="material" />
+        </mesh>
+        {/* Base Pillar Mountings */}
+        <mesh position={[-4.1, 0, 0]} castShadow receiveShadow>
+          <boxGeometry args={[1.2, 0.8, 1.2]} />
+          <meshStandardMaterial
+            color={CHRONOS_PALETTE.darkStone}
+            roughness={0.8}
+            metalness={0.2}
+          />
+        </mesh>
+        <mesh position={[4.1, 0, 0]} castShadow receiveShadow>
+          <boxGeometry args={[1.2, 0.8, 1.2]} />
+          <meshStandardMaterial
+            color={CHRONOS_PALETTE.darkStone}
+            roughness={0.8}
+            metalness={0.2}
+          />
+        </mesh>
+      </group>
+
+      {/* Rotating Astronomical Equatorial Ring */}
+      <group ref={slowPrecessionRef}>
+        {/* Main outer bronze rim */}
+        <mesh castShadow receiveShadow>
+          <torusGeometry args={[4.0, 0.18, 16, 96]} />
+          <primitive object={bronzeMaterial} attach="material" />
+        </mesh>
+
+        {/* Outer concentric stepped gold band */}
+        <mesh position={[0, 0, 0.05]}>
+          <torusGeometry args={[4.22, 0.06, 12, 96]} />
+          <primitive object={goldAccentMaterial} attach="material" />
+        </mesh>
+        <mesh position={[0, 0, -0.05]}>
+          <torusGeometry args={[4.22, 0.06, 12, 96]} />
+          <primitive object={goldAccentMaterial} attach="material" />
+        </mesh>
+
+        {/* Inner concentric stepped gold track */}
+        <mesh>
+          <torusGeometry args={[3.78, 0.07, 12, 96]} />
+          <primitive object={goldAccentMaterial} attach="material" />
+        </mesh>
+
+        {/* Celestial Engravings on the outer ring */}
+        <AncientEngravings
+          radius={3.98}
+          count={72}
+          majorInterval={6}
+          color={CHRONOS_PALETTE.warmGold}
+          depth={0.16}
+        />
+
+        {/* Cardinal Meridian Bearing Blocks */}
+        {[0, Math.PI / 2, Math.PI, (Math.PI * 3) / 2].map((angle, i) => (
+          <group
+            key={`bearing-${i}`}
+            position={[Math.cos(angle) * 4.0, Math.sin(angle) * 4.0, 0]}
+            rotation={[0, 0, angle]}
+          >
+            <mesh castShadow>
+              <boxGeometry args={[0.3, 0.5, 0.45]} />
+              <primitive object={goldAccentMaterial} attach="material" />
+            </mesh>
+            <mesh position={[0, 0, 0.25]} rotation={[Math.PI / 2, 0, 0]}>
+              <cylinderGeometry args={[0.1, 0.1, 0.12, 16]} />
+              <primitive object={bronzeMaterial} attach="material" />
+            </mesh>
+          </group>
+        ))}
+      </group>
+    </group>
+  );
+}

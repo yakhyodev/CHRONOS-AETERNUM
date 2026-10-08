@@ -1,15 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #05050a;
-  --foreground: #e2e8f0;
+  --background: #08090D;
+  --foreground: #F5F3ED;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: #05050a;
-  color: #e2e8f0;
+  background-color: #08090D;
+  color: #F5F3ED;
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
 }
@@ -32,14 +32,14 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #05050a;
+  background: #08090D;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1f202d;
+  background: #192025;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #d4af37;
+  background: #D4AF37;
 }

@@ -1,84 +1,163 @@
 'use client';
 
+import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { Header } from '@/components/ui/Header';
-import { Overlay } from '@/components/ui/Overlay';
-import { useScrollPosition } from '@/hooks/useScrollPosition';
+import { gsap } from '@/lib/gsap';
+import { CINEMATIC_SHOTS, type CinematicShotId } from '@/lib/constants';
+import { CinematicUI } from '@/components/ui/CinematicUI';
+import { AtmosphereOverlay } from '@/components/ui/AtmosphereOverlay';
+import { DebugPanel } from '@/components/ui/DebugPanel';
 
-// Dynamically import Scene with SSR disabled to guarantee smooth WebGL canvas initialization
+// Dynamically import Scene to eliminate SSR hydration discrepancies with WebGL Canvas
 const Scene = dynamic(
   () => import('@/components/canvas/Scene').then((mod) => mod.Scene),
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full flex items-center justify-center bg-[#05050a]">
-        <div className="w-8 h-8 rounded-full border border-amber-400/30 border-t-amber-400 animate-spin" />
+      <div className="fixed inset-0 flex items-center justify-center bg-[#08090D] z-0">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 rounded-full border border-amber-500/30 border-t-amber-400 animate-spin" />
+          <span className="font-mono text-[10px] tracking-[0.3em] text-amber-300/70 uppercase">
+            CALIBRATING CHRONOS CORE...
+          </span>
+        </div>
       </div>
     ),
   }
 );
 
-export default function HomePage() {
-  const scrollY = useScrollPosition();
+export default function ChronosPhase02Page() {
+  const [currentShot, setCurrentShot] = useState<CinematicShotId>('shot-01');
+  const [isActive, setIsActive] = useState<boolean>(false);
+  const [activationProgress, setActivationProgress] = useState<number>(0);
+  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+  const [reducedMotion, setReducedMotion] = useState<boolean>(false);
+
+  // Mutable progress proxy for GSAP tweening
+  const progressProxy = useRef<{ value: number }>({ value: 0 });
+  const activeTimeline = useRef<gsap.core.Timeline | null>(null);
+
+  // Check user prefers-reduced-motion system preference and optional URL query parameters for automated testing
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+      setReducedMotion(mediaQuery.matches);
+
+      const handleChange = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+      mediaQuery.addEventListener('change', handleChange);
+
+      // URL search params support for testing & deep linking shots
+      const params = new URLSearchParams(window.location.search);
+      const urlShot = params.get('shot') as CinematicShotId;
+      if (urlShot && CINEMATIC_SHOTS.some((s) => s.id === urlShot)) {
+        setCurrentShot(urlShot);
+      }
+      if (params.get('active') === 'true' || params.get('active') === '1') {
+        setIsActive(true);
+        progressProxy.current.value = 1.0;
+        setActivationProgress(1.0);
+      }
+
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
+  }, []);
+
+  // Activation sequence orchestrator
+  const handleActivate = useCallback(() => {
+    if (isTransitioning) return;
+
+    setIsTransitioning(true);
+    if (activeTimeline.current) {
+      activeTimeline.current.kill();
+    }
+
+    const targetActive = !isActive;
+    const endProgress = targetActive ? 1.0 : 0.0;
+    const duration = reducedMotion ? 0.3 : 2.5;
+
+    const tl = gsap.timeline({
+      onComplete: () => {
+        setIsActive(targetActive);
+        setIsTransitioning(false);
+      },
+    });
+    activeTimeline.current = tl;
+
+    // Transition camera to Shot 05 (Activation) when engaging
+    if (targetActive) {
+      setCurrentShot('shot-05');
+    }
+
+    tl.to(progressProxy.current, {
+      value: endProgress,
+      duration,
+      ease: 'power3.inOut',
+      onUpdate: () => {
+        setActivationProgress(progressProxy.current.value);
+      },
+    });
+  }, [isActive, isTransitioning, reducedMotion]);
+
+  // Shot switcher handler
+  const handleSelectShot = useCallback((shotId: CinematicShotId) => {
+    setCurrentShot(shotId);
+  }, []);
+
+  // Scroll listener for optional story progression through the 6 cinematic shots
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (maxScroll <= 0) return;
+
+      const progress = Math.min(Math.max(scrollY / maxScroll, 0), 1);
+      const shotIndex = Math.min(
+        Math.floor(progress * CINEMATIC_SHOTS.length),
+        CINEMATIC_SHOTS.length - 1
+      );
+      const targetShot = CINEMATIC_SHOTS[shotIndex].id;
+
+      setCurrentShot((prev) => (prev !== targetShot ? targetShot : prev));
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
-    <main className="relative min-h-[160vh] bg-[#05050a] text-slate-100 overflow-x-hidden">
-      {/* Cinematic Ambient Glow */}
-      <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_50%_40%,rgba(212,175,55,0.06),transparent_60%)]" />
+    <main className="relative min-h-[300vh] bg-[#08090D] text-[#F5F3ED] overflow-x-hidden selection:bg-[#D4AF37]/30 selection:text-[#FFE8B5]">
+      {/* 1. Atmospheric Ambient Vignette and Particles */}
+      <AtmosphereOverlay />
 
-      {/* Persistent Top Navigation Bar */}
-      <Header />
-
-      {/* Fixed Fullscreen 3D WebGL Canvas */}
-      <div className="fixed inset-0 z-0 pointer-events-auto">
-        <Scene />
+      {/* 2. Fullscreen Interactive 3D WebGL Canvas */}
+      <div className="fixed inset-0 z-10 pointer-events-auto">
+        <Scene
+          currentShot={currentShot}
+          activationProgress={activationProgress}
+          reducedMotion={reducedMotion}
+        />
       </div>
 
-      {/* Scroll-aware Foreground Cinematic Overlay */}
-      <div className="relative z-10">
-        <Overlay scrollY={scrollY} />
-
-        {/* Foundation Verification Panel */}
-        <section className="relative z-10 mx-auto max-w-4xl px-6 py-24 sm:px-12">
-          <div className="rounded-xl border border-white/10 bg-[#070710]/80 p-8 backdrop-blur-md shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                <h3 className="font-cinzel text-lg font-bold tracking-wider text-white">
-                  FOUNDATION VERIFICATION
-                </h3>
-              </div>
-              <span className="font-mono text-xs text-zinc-400">PHASE 01 COMPLIANT</span>
-            </div>
-
-            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="rounded-lg border border-white/5 bg-white/[0.02] p-4 font-mono text-xs">
-                <div className="text-zinc-500 uppercase">3D Engine</div>
-                <div className="mt-1 text-sm font-semibold text-amber-300">Three.js + R3F + Drei</div>
-                <div className="mt-1 text-[11px] text-zinc-400">WebGL canvas active with rotating temporal rings</div>
-              </div>
-
-              <div className="rounded-lg border border-white/5 bg-white/[0.02] p-4 font-mono text-xs">
-                <div className="text-zinc-500 uppercase">Animation Core</div>
-                <div className="mt-1 text-sm font-semibold text-cyan-300">GSAP + ScrollTrigger</div>
-                <div className="mt-1 text-[11px] text-zinc-400">Registered and ready for scroll-driven timelines</div>
-              </div>
-
-              <div className="rounded-lg border border-white/5 bg-white/[0.02] p-4 font-mono text-xs">
-                <div className="text-zinc-500 uppercase">Application Framework</div>
-                <div className="mt-1 text-sm font-semibold text-white">Next.js App Router</div>
-                <div className="mt-1 text-[11px] text-zinc-400">TypeScript + Tailwind CSS dark foundation</div>
-              </div>
-
-              <div className="rounded-lg border border-white/5 bg-white/[0.02] p-4 font-mono text-xs">
-                <div className="text-zinc-500 uppercase">Next Milestone</div>
-                <div className="mt-1 text-sm font-semibold text-zinc-300">Phase 02 Architecture</div>
-                <div className="mt-1 text-[11px] text-zinc-400">Awaiting historical era specifications</div>
-              </div>
-            </div>
-          </div>
-        </section>
+      {/* 3. Foreground Cinematic Interface (Hero Title, CTAs, Telemetry, Shot Navigator) */}
+      <div className="fixed inset-0 z-30 pointer-events-none">
+        <CinematicUI
+          isActive={isActive}
+          activationProgress={activationProgress}
+          currentShot={currentShot}
+          onActivate={handleActivate}
+          onSelectShot={handleSelectShot}
+          isTransitioning={isTransitioning}
+        />
       </div>
+
+      {/* 4. Development-only Minimal Status Panel */}
+      <DebugPanel
+        currentShot={currentShot}
+        isActive={isActive}
+        activationProgress={activationProgress}
+        onSelectShot={handleSelectShot}
+        onToggleActive={handleActivate}
+      />
     </main>
   );
 }
