@@ -47,15 +47,27 @@ async function runSmokeTests() {
     }
     console.log('  ✓ SVG assets served cleanly');
 
-    // 4. Test Query Routing (?shot=shot-05&active=1)
-    console.log('[4/4] Verifying shot query route handling...');
+    // 4. Test Chamber Query Routing
+    console.log('[4/5] Verifying shot query route handling...');
     const shotTest = await checkUrl(`${baseUrl}?shot=shot-03`);
     if (shotTest.statusCode !== 200) {
       throw new Error(`Query routing failed with ${shotTest.statusCode}`);
     }
     console.log('  ✓ Query routing supported without SSR crashes');
 
-    console.log('\nALL 4 E2E SMOKE TESTS PASSED CLEANLY.\n');
+    // 5. Test Phase 03 City Route & Visual Assets
+    console.log('[5/5] Verifying Phase 03 city route handling & asset board...');
+    const cityTest = await checkUrl(`${baseUrl}?world=city&view=city-panorama`);
+    if (cityTest.statusCode !== 200) {
+      throw new Error(`City routing failed with ${cityTest.statusCode}`);
+    }
+    const artBoard = await checkUrl(`${baseUrl}/chronos/phase03/00-full-art-direction-board.png`);
+    if (artBoard.statusCode !== 200) {
+      throw new Error(`Phase 03 art board asset returned ${artBoard.statusCode}`);
+    }
+    console.log('  ✓ City world mode & Phase 03 visual assets verified');
+
+    console.log('\nALL 5 E2E SMOKE TESTS PASSED CLEANLY.\n');
     process.exit(0);
   } catch (err) {
     console.error('Smoke Test Failed:', err.message);

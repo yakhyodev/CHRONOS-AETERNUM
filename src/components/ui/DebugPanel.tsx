@@ -9,18 +9,24 @@ interface DebugPanelProps {
   currentShot: CinematicShotId;
   activationState: ActivationState;
   qualityPreset: QualityPreset;
+  worldMode?: string;
+  cityView?: string;
   onSelectShot: (shot: CinematicShotId) => void;
   onToggleActive: () => void;
   onSetQuality: (quality: QualityPreset) => void;
+  onToggleWorld?: () => void;
 }
 
 export function DebugPanel({
   currentShot,
   activationState,
   qualityPreset,
+  worldMode = 'chamber',
+  cityView = 'grand-arrival',
   onSelectShot,
   onToggleActive,
   onSetQuality,
+  onToggleWorld,
 }: DebugPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -45,7 +51,7 @@ export function DebugPanel({
       ) : (
         <div className="w-64 rounded border border-white/15 bg-[#08090D]/95 p-3 text-zinc-300 shadow-2xl backdrop-blur-md">
           <div className="flex items-center justify-between border-b border-white/10 pb-1.5 font-bold text-[#EAB774]">
-            <span>PHASE 2.2 DEBUG</span>
+            <span>PHASE 03 DEBUG</span>
             <button
               type="button"
               onClick={() => setIsOpen(false)}
@@ -55,23 +61,39 @@ export function DebugPanel({
             </button>
           </div>
           <div className="mt-2 space-y-1 text-zinc-400">
-            <div className="flex items-center gap-1">
-              <span>Shot:</span>
-              {(['shot-01', 'shot-02', 'shot-03', 'shot-04', 'shot-05'] as const).map((s, idx) => (
+            <div className="flex items-center justify-between">
+              <span>World: <strong className="text-white uppercase">{worldMode}</strong></span>
+              {onToggleWorld && (
                 <button
-                  key={s}
                   type="button"
-                  onClick={() => onSelectShot(s)}
-                  className={`px-1 py-0.5 rounded text-[9px] ${
-                    currentShot === s
-                      ? 'bg-[#D4AF37] text-black font-bold'
-                      : 'bg-white/10 text-zinc-300 hover:text-white'
-                  }`}
+                  onClick={onToggleWorld}
+                  className="rounded bg-white/10 px-1.5 py-0.5 text-[9px] hover:text-white"
                 >
-                  0{idx + 1}
+                  Switch
                 </button>
-              ))}
+              )}
             </div>
+            {worldMode === 'city' ? (
+              <div>City View: <span className="text-[#FFE8B5]">{cityView}</span></div>
+            ) : (
+              <div className="flex items-center gap-1">
+                <span>Shot:</span>
+                {(['shot-01', 'shot-02', 'shot-03', 'shot-04', 'shot-05'] as const).map((s, idx) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => onSelectShot(s)}
+                    className={`px-1 py-0.5 rounded text-[9px] ${
+                      currentShot === s
+                        ? 'bg-[#D4AF37] text-black font-bold'
+                        : 'bg-white/10 text-zinc-300 hover:text-white'
+                    }`}
+                  >
+                    0{idx + 1}
+                  </button>
+                ))}
+              </div>
+            )}
             <div>State: <span className="text-amber-300">{activationState.toUpperCase()}</span></div>
             <div>Continuous Progress: <span className="text-white">{(chronosStore.activationProgress * 100).toFixed(0)}%</span></div>
             <div className="flex items-center gap-1 pt-1">

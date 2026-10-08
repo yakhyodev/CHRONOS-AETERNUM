@@ -76,76 +76,76 @@ export const CITY_DISTRICTS: Record<CityDistrictId, CityDistrictConfig> = {
     id: 'chronos-plaza',
     name: 'Chronos Plaza',
     codename: 'PLAZA_PRIME',
-    description: 'The monumental civic epicenter housing the grand sundial forum and celestial towers.',
+    description: 'The monumental civic epicenter housing the grand clock tower, concentric forum, and radial avenues.',
     boundary: {
       center: [0, 0, -120],
       radius: 65,
-      heightLimits: [0, 48],
+      heightLimits: [0, 55],
     },
-    architecturalStyle: 'Neo-Classical Monolithic with Gold Inlays',
+    architecturalStyle: 'Neo-Classical Monolithic & Gothic Revival',
     primaryLightColor: '#D4AF37',
-    ambientAudioTrackId: 'audio-plaza-sundial',
-    eraVariations: ['ancient-foundations', 'classical-renaissance', 'industrial-epoch', 'electric-zenith', 'aeternum-timeless'],
+    ambientAudioTrackId: 'audio-plaza-bells',
+    eraVariations: ['the-origin', 'the-kingdom', 'the-machine', 'the-present', 'the-next-age'],
   },
   'old-district': {
     id: 'old-district',
     name: 'Old District',
     codename: 'VETUS_QUARTER',
-    description: 'Narrow cobblestone labyrinths, timber-framed facades, and medieval trade arcades.',
+    description: 'Dense historical stone fabric, terracotta roofs, narrow cobblestone streets, and arches.',
     boundary: {
-      center: [-85, 2, -140],
+      center: [-75, 2, -135],
       radius: 55,
-      heightLimits: [0, 28],
+      heightLimits: [0, 32],
     },
-    architecturalStyle: 'Medieval Stone Masonry & Timber Framing',
+    architecturalStyle: 'Medieval Stone Masonry & Terracotta Framing',
     primaryLightColor: '#EAB774',
     ambientAudioTrackId: 'audio-old-quarter-echoes',
-    eraVariations: ['ancient-foundations', 'classical-renaissance', 'industrial-epoch', 'electric-zenith', 'aeternum-timeless'],
+    eraVariations: ['the-origin', 'the-kingdom', 'the-machine', 'the-present', 'the-next-age'],
   },
   'river-crossing': {
     id: 'river-crossing',
     name: 'River Crossing',
     codename: 'AETERNUM_RIVER',
-    description: 'Grand vaulted aqueduct bridges and watermills spanning the mystic Chronos River.',
+    description: 'Winding river, monumental multi-arch stone bridge, promenades, and river embankments.',
     boundary: {
-      center: [75, -6, -155],
+      center: [70, -2, -130],
       radius: 70,
-      heightLimits: [-12, 35],
+      heightLimits: [-6, 35],
     },
-    architecturalStyle: 'Romanesque Aqueducts & Waterway Locks',
+    architecturalStyle: 'Arched Stone Aqueducts & Embankments',
     primaryLightColor: '#7AA2B8',
     ambientAudioTrackId: 'audio-river-currents',
-    eraVariations: ['ancient-foundations', 'classical-renaissance', 'industrial-epoch', 'electric-zenith', 'aeternum-timeless'],
+    eraVariations: ['the-origin', 'the-kingdom', 'the-machine', 'the-present', 'the-next-age'],
   },
   'industrial-quarter': {
     id: 'industrial-quarter',
     name: 'Industrial Quarter',
     codename: 'IRON_HEARTH',
-    description: 'Soot-blackened iron furnaces, steam conduits, brass clocktowers, and mechanical lifts.',
+    description: 'Brick factories, towering smokestacks, iron trusses, saw-tooth roofs, and workshops.',
     boundary: {
-      center: [-60, -2, -220],
-      radius: 80,
-      heightLimits: [-4, 62],
+      center: [-65, 0, -75],
+      radius: 65,
+      heightLimits: [0, 48],
     },
-    architecturalStyle: 'Steampunk Victorian Cast-Iron & Brick Furnaces',
+    architecturalStyle: '19th-Century Industrial Brick Masonry & Cast Iron',
     primaryLightColor: '#FF6F3D',
     ambientAudioTrackId: 'audio-furnace-steam',
-    eraVariations: ['ancient-foundations', 'classical-renaissance', 'industrial-epoch', 'electric-zenith', 'aeternum-timeless'],
+    eraVariations: ['the-origin', 'the-kingdom', 'the-machine', 'the-present', 'the-next-age'],
   },
   'the-observatory': {
     id: 'the-observatory',
     name: 'The Observatory',
     codename: 'ZENITH_PEAK',
-    description: 'Elevated mountain citadel dome equipped with titanic astrolabes scanning temporal rifts.',
+    description: 'Elevated northern rocky hill, winding mountain road, and monumental celestial dome overlooking Aeternum.',
     boundary: {
-      center: [55, 38, -260],
+      center: [40, 36, -230],
       radius: 50,
-      heightLimits: [25, 95],
+      heightLimits: [20, 85],
     },
-    architecturalStyle: 'High Celestial Dome with Rotating Armillary Rings',
+    architecturalStyle: 'High Celestial Dome & Mountain Terraces',
     primaryLightColor: '#A78BFA',
     ambientAudioTrackId: 'audio-observatory-celestial',
-    eraVariations: ['ancient-foundations', 'classical-renaissance', 'industrial-epoch', 'electric-zenith', 'aeternum-timeless'],
+    eraVariations: ['the-origin', 'the-kingdom', 'the-machine', 'the-present', 'the-next-age'],
   },
 };
 
@@ -154,11 +154,11 @@ export const CITY_DISTRICTS: Record<CityDistrictId, CityDistrictConfig> = {
 // ============================================================================
 
 export type HistoricalEraId =
-  | 'ancient-foundations'
-  | 'classical-renaissance'
-  | 'industrial-epoch'
-  | 'electric-zenith'
-  | 'aeternum-timeless';
+  | 'the-origin'
+  | 'the-kingdom'
+  | 'the-machine'
+  | 'the-present'
+  | 'the-next-age';
 
 export interface HistoricalEraConfig {
   id: HistoricalEraId;
@@ -175,10 +175,10 @@ export interface HistoricalEraConfig {
 }
 
 export const HISTORICAL_ERAS: Record<HistoricalEraId, HistoricalEraConfig> = {
-  'ancient-foundations': {
-    id: 'ancient-foundations',
-    yearDisplay: 'ERA 01 — 320 BCE',
-    epochName: 'Ancient Foundations',
+  'the-origin': {
+    id: 'the-origin',
+    yearDisplay: 'ERA 01 — 1200 BCE',
+    epochName: 'The Origin',
     paletteTheme: {
       skyColor: '#070a0f',
       fogDensity: 0.015,
@@ -188,10 +188,10 @@ export const HISTORICAL_ERAS: Record<HistoricalEraId, HistoricalEraConfig> = {
     },
     dominantMaterials: ['rough_chiseled_sandstone', 'dark_monolithic_basalt', 'crude_bronze'],
   },
-  'classical-renaissance': {
-    id: 'classical-renaissance',
-    yearDisplay: 'ERA 02 — 1512 CE',
-    epochName: 'Classical Renaissance',
+  'the-kingdom': {
+    id: 'the-kingdom',
+    yearDisplay: 'ERA 02 — 1450 CE',
+    epochName: 'The Kingdom',
     paletteTheme: {
       skyColor: '#0b1019',
       fogDensity: 0.012,
@@ -201,10 +201,10 @@ export const HISTORICAL_ERAS: Record<HistoricalEraId, HistoricalEraConfig> = {
     },
     dominantMaterials: ['polished_white_marble', 'aged_terracotta', 'carved_oak', 'leaf_gold'],
   },
-  'industrial-epoch': {
-    id: 'industrial-epoch',
-    yearDisplay: 'ERA 03 — 1888 CE',
-    epochName: 'Industrial Epoch',
+  'the-machine': {
+    id: 'the-machine',
+    yearDisplay: 'ERA 03 — 1890 CE',
+    epochName: 'The Machine',
     paletteTheme: {
       skyColor: '#0d0d10',
       fogDensity: 0.025,
@@ -214,23 +214,23 @@ export const HISTORICAL_ERAS: Record<HistoricalEraId, HistoricalEraConfig> = {
     },
     dominantMaterials: ['riveted_wrought_iron', 'red_kiln_brick', 'tarnished_brass', 'soot_slate'],
   },
-  'electric-zenith': {
-    id: 'electric-zenith',
-    yearDisplay: 'ERA 04 — 1968 CE',
-    epochName: 'Electric Zenith',
+  'the-present': {
+    id: 'the-present',
+    yearDisplay: 'ERA 04 — 2026 CE',
+    epochName: 'The Present',
     paletteTheme: {
-      skyColor: '#080c14',
-      fogDensity: 0.014,
-      fogColor: '#101e2c',
-      ambientIntensity: 0.45,
-      keyLightColor: '#60A5FA',
+      skyColor: '#0b1320',
+      fogDensity: 0.012,
+      fogColor: '#2b231c',
+      ambientIntensity: 0.55,
+      keyLightColor: '#FFAE5C',
     },
-    dominantMaterials: ['brushed_aluminum', 'reinforced_concrete', 'neon_luminescence', 'tinted_glass'],
+    dominantMaterials: ['weathered_sandstone', 'warm_terracotta', 'dark_slate', 'reflective_water', 'patinated_bronze'],
   },
-  'aeternum-timeless': {
-    id: 'aeternum-timeless',
-    yearDisplay: 'ERA 05 — THE INFINITE',
-    epochName: 'Aeternum Timeless',
+  'the-next-age': {
+    id: 'the-next-age',
+    yearDisplay: 'ERA 05 — 2200 CE',
+    epochName: 'The Next Age',
     paletteTheme: {
       skyColor: '#05070a',
       fogDensity: 0.018,
@@ -239,6 +239,56 @@ export const HISTORICAL_ERAS: Record<HistoricalEraId, HistoricalEraConfig> = {
       keyLightColor: '#D4AF37',
     },
     dominantMaterials: ['crystallized_chronite', 'dark_obsidian_void', 'levitating_gold_glyphs'],
+  },
+};
+
+// ============================================================================
+// 3.1 CITY CAMERA VIEWS (PHASE 03 SPECIFICATION)
+// ============================================================================
+
+export type CityViewId = 'grand-arrival' | 'city-panorama' | 'observatory-distance';
+
+export interface CityViewConfig {
+  id: CityViewId;
+  number: string;
+  name: string;
+  subtitle: string;
+  description: string;
+  cameraPosition: [number, number, number];
+  targetPosition: [number, number, number];
+  fov: number;
+}
+
+export const CITY_VIEWS: Record<CityViewId, CityViewConfig> = {
+  'grand-arrival': {
+    id: 'grand-arrival',
+    number: '01',
+    name: 'Grand Arrival',
+    subtitle: 'CHRONOS PLAZA & CLOCK TOWER',
+    description: 'Ground-level perspective of the monumental clock tower and concentric civic forum.',
+    cameraPosition: [0, 8, -85],
+    targetPosition: [0, 22, -125],
+    fov: 52,
+  },
+  'city-panorama': {
+    id: 'city-panorama',
+    number: '02',
+    name: 'City Panorama',
+    subtitle: 'THE FIVE DISTRICTS OF AETERNUM',
+    description: 'Elevated panoramic vista sweeping across all five districts, the river bridge, and mountains.',
+    cameraPosition: [35, 75, -35],
+    targetPosition: [-5, 14, -145],
+    fov: 55,
+  },
+  'observatory-distance': {
+    id: 'observatory-distance',
+    number: '03',
+    name: 'Observatory Distance',
+    subtitle: 'THE NORTHERN CELESTIAL DOME',
+    description: 'Elevated viewpoint framing the northern hilltop observatory towering over the city.',
+    cameraPosition: [-25, 42, -100],
+    targetPosition: [42, 46, -235],
+    fov: 44,
   },
 };
 

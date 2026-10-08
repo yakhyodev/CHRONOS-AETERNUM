@@ -3,13 +3,22 @@
 import { Suspense, useState, useEffect, useSyncExternalStore } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { CHRONOS_PALETTE, type CinematicShotId } from '@/lib/constants';
-import { chronosStore, QUALITY_PRESETS, type QualityPreset } from '@/lib/chronosStore';
+import {
+  chronosStore,
+  QUALITY_PRESETS,
+  type QualityPreset,
+  type WorldMode,
+} from '@/lib/chronosStore';
+import type { CityViewId } from '@/types/phase03';
 import { isWebGLAvailable } from '@/lib/webglDetect';
 import { ChamberEnvironment } from './chamber/ChamberEnvironment';
 import { ChronosCore } from './core/ChronosCore';
 import { CoreLighting } from './CoreLighting';
 import { EnvironmentalParticles } from './EnvironmentalParticles';
 import { CinematicCameraRig } from './CinematicCameraRig';
+import { AeternumWorld } from './city/AeternumWorld';
+import { CityCameraRig } from './city/CityCameraRig';
+import { TemporalTunnel } from './transition/TemporalTunnel';
 import { WebGLFallback } from '../ui/WebGLFallback';
 
 interface SceneProps {
@@ -31,6 +40,18 @@ export function Scene({
     (cb) => chronosStore.subscribe(cb),
     () => chronosStore.qualityPreset,
     () => 'high' as QualityPreset
+  );
+
+  const worldMode = useSyncExternalStore(
+    (cb) => chronosStore.subscribe(cb),
+    () => chronosStore.worldMode,
+    () => 'chamber' as WorldMode
+  );
+
+  const cityView = useSyncExternalStore(
+    (cb) => chronosStore.subscribe(cb),
+    () => chronosStore.cityView,
+    () => 'grand-arrival' as CityViewId
   );
 
   useEffect(() => {
@@ -57,11 +78,15 @@ export function Scene({
   }
 
   const qualityConfig = QUALITY_PRESETS[qualityPreset] || QUALITY_PRESETS.high;
+  const isCityActive = worldMode === 'city';
+  const isTransitioning =
+    worldMode === 'transitioning_to_city' ||
+    worldMode === 'transitioning_to_chamber';
 
   return (
     <div className={`relative w-full h-full ${className}`}>
       <Canvas
-        camera={{ position: [0, 2.5, 26], fov: 54, near: 0.1, far: 90 }}
+        camera={{ position: [0, 2.5, 26], fov: 54, near: 0.1, far: 500 }}
         gl={{
           antialias: qualityPreset !== 'low',
           alpha: false,
@@ -71,33 +96,59 @@ export function Scene({
         dpr={qualityConfig.dpr}
         shadows={qualityConfig.shadows}
       >
-        {/* Void Black Chamber Background */}
-        <color attach="background" args={[CHRONOS_PALETTE.voidBlack]} />
-
-        {/* Volumetric Atmospheric Depth Fog */}
-        <fog attach="fog" args={[CHRONOS_PALETTE.voidBlack, 14, 58]} />
-
-        {/* Chamber Lights (Amber Core, Overhead Shaft, Cool Rim) */}
-        <CoreLighting
-          shadowMapSize={qualityConfig.shadowMapSize}
-          enableShadows={qualityConfig.shadows}
+        {/* Dynamic Background: Void Black in chamber, Warm Sunset in city */}
+        <color
+          attach="background"
+          args={[isCityActive ? '#211A16' : CHRONOS_PALETTE.voidBlack]}
         />
 
-        {/* Dynamic Camera Choreography Rig */}
-        <CinematicCameraRig
-          currentShot={currentShot}
-          reducedMotion={reducedMotion}
-        />
+        {/* Dynamic Camera Rig: Chamber Timeline vs Aeternum City Views */}
+        {isCityActive ? (
+          <CityCameraRig
+            currentView={cityView}
+            reducedMotion={reducedMotion}
+          />
+        ) : (
+          <CinematicCameraRig
+            currentShot={currentShot}
+            reducedMotion={reducedMotion}
+          />
+        )}
 
         <Suspense fallback={null}>
-          {/* Monumental Underground Chamber Architecture */}
-          <ChamberEnvironment />
+          {/* ============================================================== */}
+          {/* 1. CHAMBER SCENE (Active in Chamber mode & during transitions) */}
+          {/* ============================================================== */}
+          {(!isCityActive || isTransitioning) && (
+            <group name="ChamberScene">
+              {/* Chamber Lights */}
+              <CoreLighting
+                shadowMapSize={qualityConfig.shadowMapSize}
+                enableShadows={qualityConfig.shadows}
+              />
 
-          {/* Real 3D Astronomical Chronos Core */}
-          <ChronosCore />
+              {/* Monumental Underground Chamber Architecture */}
+              <ChamberEnvironment />
 
-          {/* Floating Chamber Dust & Embers */}
-          <EnvironmentalParticles count={qualityConfig.particleCount} />
+              {/* Real 3D Astronomical Chronos Core */}
+              <ChronosCore />
+
+              {/* Floating Chamber Dust & Embers */}
+              <EnvironmentalParticles count={qualityConfig.particleCount} />
+            </group>
+          )}
+
+          {/* ============================================================== */}
+          {/* 2. TEMPORAL TUNNEL VORTEX (Active during warp transition) */}
+          {/* ============================================================== */}
+          {isTransitioning && <TemporalTunnel />}
+
+          {/* ============================================================== */}
+          {/* 3. AETERNUM CITY WORLD (Active in City mode & transitions) */}
+          {/* ============================================================== */}
+          {(isCityActive || isTransitioning) && (
+            <AeternumWorld qualityPreset={qualityPreset} />
+          )}
         </Suspense>
       </Canvas>
     </div>

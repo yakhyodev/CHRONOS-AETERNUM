@@ -8,8 +8,11 @@ import {
   chronosStore,
   type ActivationState,
   type QualityPreset,
+  type WorldMode,
 } from '@/lib/chronosStore';
+import type { CityViewId } from '@/types/phase03';
 import { CinematicUI } from '@/components/ui/CinematicUI';
+import { CityUI } from '@/components/ui/CityUI';
 import { AtmosphereOverlay } from '@/components/ui/AtmosphereOverlay';
 import { DebugPanel } from '@/components/ui/DebugPanel';
 
@@ -31,8 +34,20 @@ const Scene = dynamic(
   }
 );
 
-export default function ChronosPhase02Page() {
+export default function ChronosPage() {
   // Sync discrete states with chronosStore
+  const worldMode = useSyncExternalStore(
+    (cb) => chronosStore.subscribe(cb),
+    () => chronosStore.worldMode,
+    () => 'chamber' as WorldMode
+  );
+
+  const cityView = useSyncExternalStore(
+    (cb) => chronosStore.subscribe(cb),
+    () => chronosStore.cityView,
+    () => 'grand-arrival' as CityViewId
+  );
+
   const currentShot = useSyncExternalStore(
     (cb) => chronosStore.subscribe(cb),
     () => chronosStore.currentShot,
@@ -73,8 +88,20 @@ export default function ChronosPhase02Page() {
     };
     mediaQuery.addEventListener('change', handleMotionChange);
 
-    // Deep-linking URL query params for testing (e.g. ?shot=shot-03&active=1&quality=medium)
+    // Deep-linking URL query params for testing and QA
     const params = new URLSearchParams(window.location.search);
+    const urlWorld = params.get('world');
+    const urlView = params.get('view') as CityViewId;
+
+    if (urlWorld === 'city') {
+      chronosStore.setWorldMode('city');
+      chronosStore.setActivationProgress(1.0);
+      chronosStore.setActivationState('active');
+      if (urlView && ['grand-arrival', 'city-panorama', 'observatory-distance'].includes(urlView)) {
+        chronosStore.setCityView(urlView);
+      }
+    }
+
     const urlShot = params.get('shot') as CinematicShotId;
     if (urlShot && CINEMATIC_SHOTS.some((s) => s.id === urlShot)) {
       chronosStore.setCurrentShot(urlShot);
@@ -102,63 +129,95 @@ export default function ChronosPhase02Page() {
     };
   }, []);
 
-  // Unified Activation Sequence (discrete React states + zero-rerender continuous 3D tween)
+  // Cinematic Chamber-to-City Transition Sequence
   const handleActivate = useCallback(() => {
     if (activationState === 'activating' || activationState === 'deactivating') {
-      return; // Prevent overlapping transitions
+      return;
     }
 
     if (activeTimeline.current) {
       activeTimeline.current.kill();
     }
 
-    const isEngaging = activationState === 'idle';
-    const targetState: ActivationState = isEngaging ? 'active' : 'idle';
-    const intermediateState: ActivationState = isEngaging ? 'activating' : 'deactivating';
-    const targetProgress = isEngaging ? 1.0 : 0.0;
-    const duration = reducedMotion ? 0.15 : 2.2;
+    if (worldMode === 'city') {
+      // If already in city, toggle back to chamber
+      handleReturnToChamber();
+      return;
+    }
 
-    chronosStore.setActivationState(intermediateState);
+    // 1. Initiate Core Activation
+    chronosStore.setActivationState('activating');
+    const duration = reducedMotion ? 0.3 : 2.4;
 
-    // Context-safe animation
-    const proxy = { value: chronosStore.activationProgress };
+    const proxy = { actProgress: chronosStore.activationProgress, portalProgress: 0 };
     const tl = gsap.timeline({
       onComplete: () => {
-        chronosStore.setActivationProgress(targetProgress);
-        chronosStore.setActivationState(targetState);
+        chronosStore.setActivationProgress(1.0);
+        chronosStore.setPortalProgress(0);
+        chronosStore.setActivationState('active');
+        chronosStore.setWorldMode('city');
+        chronosStore.setCityView('grand-arrival');
       },
     });
     activeTimeline.current = tl;
 
-    // Camera moves to activation shot when engaging
-    if (isEngaging) {
-      chronosStore.setCurrentShot('shot-05');
-      // Synchronize scroll position smoothly
-      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      const shotIdx = CINEMATIC_SHOTS.findIndex((s) => s.id === 'shot-05');
-      if (maxScroll > 0 && shotIdx >= 0) {
-        isProgrammaticScroll.current = true;
-        const targetY = (shotIdx / (CINEMATIC_SHOTS.length - 1)) * maxScroll;
-        window.scrollTo({ top: targetY, behavior: 'smooth' });
-        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-        scrollTimeoutRef.current = setTimeout(() => {
-          isProgrammaticScroll.current = false;
-        }, 1200);
-      }
-    }
-
+    // Step A: Charge Chronos Core & approach Portal Archway
     tl.to(proxy, {
-      value: targetProgress,
-      duration,
-      ease: 'power3.inOut',
+      actProgress: 1.0,
+      duration: duration * 0.5,
+      ease: 'power2.inOut',
       onUpdate: () => {
-        // Direct mutation into store without triggering React re-render!
-        chronosStore.setActivationProgress(proxy.value);
+        chronosStore.setActivationProgress(proxy.actProgress);
       },
     });
-  }, [activationState, reducedMotion]);
 
-  // Synchronized shot navigation (updates both camera shot and window scroll position)
+    // Step B: Engage Temporal Tunnel Vortex & Traverse into Aeternum
+    tl.call(() => {
+      chronosStore.setWorldMode('transitioning_to_city');
+    });
+
+    tl.to(proxy, {
+      portalProgress: 1.0,
+      duration: duration * 0.5,
+      ease: 'power3.inOut',
+      onUpdate: () => {
+        chronosStore.setPortalProgress(proxy.portalProgress);
+      },
+    });
+  }, [activationState, worldMode, reducedMotion]);
+
+  // Return from Aeternum to the ancient Chamber
+  const handleReturnToChamber = useCallback(() => {
+    if (activeTimeline.current) {
+      activeTimeline.current.kill();
+    }
+
+    chronosStore.setWorldMode('transitioning_to_chamber');
+    const proxy = { val: 1.0 };
+
+    const tl = gsap.timeline({
+      onComplete: () => {
+        chronosStore.setWorldMode('chamber');
+        chronosStore.setActivationState('idle');
+        chronosStore.setActivationProgress(0);
+        chronosStore.setPortalProgress(0);
+        chronosStore.setCurrentShot('shot-01');
+        window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+      },
+    });
+    activeTimeline.current = tl;
+
+    tl.to(proxy, {
+      val: 0,
+      duration: reducedMotion ? 0.2 : 1.2,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        chronosStore.setPortalProgress(proxy.val);
+      },
+    });
+  }, [reducedMotion]);
+
+  // Synchronized shot navigation for Chamber scroll
   const handleSelectShot = useCallback((shotId: CinematicShotId) => {
     const shotIdx = CINEMATIC_SHOTS.findIndex((s) => s.id === shotId);
     if (shotIdx === -1) return;
@@ -178,9 +237,10 @@ export default function ChronosPhase02Page() {
     }
   }, []);
 
-  // Bi-directional window scroll listener (seamless forward & reverse scrolling)
+  // Bi-directional window scroll listener for Chamber mode
   useEffect(() => {
     const handleScroll = () => {
+      if (worldMode !== 'chamber') return;
       if (isProgrammaticScroll.current) return;
 
       const scrollY = window.scrollY;
@@ -196,12 +256,18 @@ export default function ChronosPhase02Page() {
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [worldMode]);
+
+  const isCityActive = worldMode === 'city';
 
   return (
-    <main className="relative min-h-[300vh] bg-[#08090D] text-[#F5F3ED] overflow-x-hidden selection:bg-[#D4AF37]/30 selection:text-[#FFE8B5]">
+    <main
+      className={`relative ${
+        isCityActive ? 'h-screen overflow-hidden' : 'min-h-[300vh] overflow-x-hidden'
+      } bg-[#08090D] text-[#F5F3ED] selection:bg-[#D4AF37]/30 selection:text-[#FFE8B5]`}
+    >
       {/* 1. Atmospheric Ambient Vignette and Particles */}
-      <AtmosphereOverlay />
+      {!isCityActive && <AtmosphereOverlay />}
 
       {/* 2. Fullscreen Interactive 3D WebGL Canvas */}
       <div className="fixed inset-0 z-10 pointer-events-auto">
@@ -211,24 +277,37 @@ export default function ChronosPhase02Page() {
         />
       </div>
 
-      {/* 3. Foreground Cinematic Interface (Hero Title, CTAs, Telemetry, Shot Navigator) */}
+      {/* 3. Foreground Cinematic UI: Chamber Interface vs City Interface */}
       <div className="fixed inset-0 z-30 pointer-events-none">
-        <CinematicUI
-          activationState={activationState}
-          currentShot={currentShot}
-          onActivate={handleActivate}
-          onSelectShot={handleSelectShot}
-        />
+        {isCityActive ? (
+          <CityUI
+            currentView={cityView}
+            onSelectView={(view) => chronosStore.setCityView(view)}
+            onReturnToChamber={handleReturnToChamber}
+          />
+        ) : (
+          <CinematicUI
+            activationState={activationState}
+            currentShot={currentShot}
+            onActivate={handleActivate}
+            onSelectShot={handleSelectShot}
+          />
+        )}
       </div>
 
-      {/* 4. Development-only Minimal Status Panel */}
+      {/* 4. Development Status & Quality Console */}
       <DebugPanel
         currentShot={currentShot}
         activationState={activationState}
         qualityPreset={qualityPreset}
+        worldMode={worldMode}
+        cityView={cityView}
         onSelectShot={handleSelectShot}
         onToggleActive={handleActivate}
         onSetQuality={(q) => chronosStore.setQualityPreset(q)}
+        onToggleWorld={() =>
+          chronosStore.setWorldMode(worldMode === 'city' ? 'chamber' : 'city')
+        }
       />
     </main>
   );

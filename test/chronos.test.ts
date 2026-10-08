@@ -135,4 +135,32 @@ describe('CHRONOS — Aeternum State & Timeline Engine', () => {
       expect(typeof isWebGLAvailable).toBe('function');
     });
   });
+
+  describe('Phase 03 — Aeternum World, Districts & Views', () => {
+    it('initializes world mode in chamber and supports city switch', () => {
+      expect(chronosStore.worldMode).toBe('chamber');
+      chronosStore.setWorldMode('city');
+      expect(chronosStore.worldMode).toBe('city');
+      chronosStore.setWorldMode('chamber');
+      expect(chronosStore.worldMode).toBe('chamber');
+    });
+
+    it('supports switching between the 3 authored city views', () => {
+      expect(chronosStore.cityView).toBe('grand-arrival');
+      chronosStore.setCityView('city-panorama');
+      expect(chronosStore.cityView).toBe('city-panorama');
+      expect(chronosStore.getCityViewConfig('city-panorama').name).toBe('City Panorama');
+
+      chronosStore.setCityView('observatory-distance');
+      expect(chronosStore.cityView).toBe('observatory-distance');
+      expect(chronosStore.getCityViewConfig().subtitle).toBe('THE NORTHERN CELESTIAL DOME');
+    });
+
+    it('tracks continuous portal vortex progress', () => {
+      chronosStore.setPortalProgress(0.75);
+      expect(chronosStore.portalProgress).toBe(0.75);
+      chronosStore.setPortalProgress(1.5);
+      expect(chronosStore.portalProgress).toBe(1.0);
+    });
+  });
 });

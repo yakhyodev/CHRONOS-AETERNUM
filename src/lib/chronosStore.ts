@@ -1,5 +1,7 @@
 import { CINEMATIC_SHOTS, type CinematicShotId } from './constants';
+import { type CityViewId, CITY_VIEWS } from '../types/phase03';
 
+export type WorldMode = 'chamber' | 'transitioning_to_city' | 'city' | 'transitioning_to_chamber';
 export type ActivationState = 'idle' | 'activating' | 'active' | 'deactivating';
 export type QualityPreset = 'high' | 'medium' | 'low';
 
@@ -37,8 +39,11 @@ class ChronosStore {
   // Continuous 3D animation values (read by Three.js render loop without React re-renders)
   public activationProgress = 0; // 0.0 to 1.0
   public timelineProgress = 0;   // 0.0 to 1.0
+  public portalProgress = 0;     // 0.0 to 1.0 for temporal vortex warp
   
   // Discrete state (notified to React UI on state change)
+  public worldMode: WorldMode = 'chamber';
+  public cityView: CityViewId = 'grand-arrival';
   public activationState: ActivationState = 'idle';
   public currentShot: CinematicShotId = 'shot-01';
   public qualityPreset: QualityPreset = 'high';
@@ -64,6 +69,24 @@ class ChronosStore {
 
   public setTimelineProgress(val: number): void {
     this.timelineProgress = Math.max(0, Math.min(1, val));
+  }
+
+  public setPortalProgress(val: number): void {
+    this.portalProgress = Math.max(0, Math.min(1, val));
+  }
+
+  public setWorldMode(mode: WorldMode): void {
+    if (this.worldMode !== mode) {
+      this.worldMode = mode;
+      this.notify();
+    }
+  }
+
+  public setCityView(view: CityViewId): void {
+    if (this.cityView !== view) {
+      this.cityView = view;
+      this.notify();
+    }
   }
 
   public setActivationState(state: ActivationState): void {
@@ -118,6 +141,13 @@ class ChronosStore {
     if (index === -1) return 0;
     // Position at the start of that shot's interval
     return index / CINEMATIC_SHOTS.length;
+  }
+
+  /**
+   * Get configuration for a specific city view
+   */
+  public getCityViewConfig(viewId?: CityViewId) {
+    return CITY_VIEWS[viewId || this.cityView];
   }
 }
 
