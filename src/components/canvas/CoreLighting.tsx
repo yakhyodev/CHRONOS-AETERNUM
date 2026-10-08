@@ -4,20 +4,29 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { CHRONOS_PALETTE } from '@/lib/constants';
+import { chronosStore } from '@/lib/chronosStore';
 
 interface CoreLightingProps {
-  activationProgress?: number;
+  shadowMapSize?: number;
+  enableShadows?: boolean;
 }
 
-export function CoreLighting({ activationProgress = 0 }: CoreLightingProps) {
+export function CoreLighting({
+  shadowMapSize = 1024,
+  enableShadows = true,
+}: CoreLightingProps) {
   const topLightRef = useRef<THREE.DirectionalLight>(null);
   const fillLightRef = useRef<THREE.PointLight>(null);
 
   useFrame((state) => {
+    const actProgress = chronosStore.activationProgress;
     const t = state.clock.getElapsedTime();
     if (fillLightRef.current) {
       // Atmospheric ambient breathing
-      fillLightRef.current.intensity = (1.2 + Math.sin(t * 1.5) * 0.15) * (1 + activationProgress * 0.8);
+      fillLightRef.current.intensity = (1.2 + Math.sin(t * 1.5) * 0.15) * (1 + actProgress * 0.8);
+    }
+    if (topLightRef.current) {
+      topLightRef.current.intensity = 1.2 + actProgress * 0.5;
     }
   });
 
@@ -31,9 +40,9 @@ export function CoreLighting({ activationProgress = 0 }: CoreLightingProps) {
         ref={topLightRef}
         position={[3, 22, 8]}
         color="#fff4db"
-        intensity={1.2 + activationProgress * 0.5}
-        castShadow
-        shadow-mapSize={[1024, 1024]}
+        intensity={1.2}
+        castShadow={enableShadows}
+        shadow-mapSize={[shadowMapSize, shadowMapSize]}
         shadow-camera-near={0.5}
         shadow-camera-far={45}
         shadow-camera-left={-14}

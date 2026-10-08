@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { CHRONOS_PALETTE } from '@/lib/constants';
 
@@ -19,74 +19,68 @@ export function AncientEngravings({
   color = CHRONOS_PALETTE.warmGold,
   depth = 0.25,
 }: AncientEngravingsProps) {
-  // Generate procedural tick marks and celestial glyphs along the circular face
-  const tickData = useMemo(() => {
-    const ticks: {
-      angle: number;
-      isMajor: boolean;
-      width: number;
-      length: number;
-    }[] = [];
+  const frontMeshRef = useRef<THREE.InstancedMesh>(null);
+  const backMeshRef = useRef<THREE.InstancedMesh>(null);
+
+  const sharedMaterial = useMemo(() => {
+    return new THREE.MeshStandardMaterial({
+      color,
+      roughness: 0.25,
+      metalness: 0.9,
+    });
+  }, [color]);
+
+  const sharedGeometry = useMemo(() => {
+    return new THREE.BoxGeometry(0.03, 0.16, 0.015);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      sharedMaterial.dispose();
+      sharedGeometry.dispose();
+    };
+  }, [sharedMaterial, sharedGeometry]);
+
+  // Set instance matrices once on mount
+  useEffect(() => {
+    const dummy = new THREE.Object3D();
 
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * Math.PI * 2;
       const isMajor = i % majorInterval === 0;
-      ticks.push({
-        angle,
-        isMajor,
-        width: isMajor ? 0.04 : 0.02,
-        length: isMajor ? 0.22 : 0.12,
-      });
+      const scaleY = isMajor ? 1.4 : 0.8;
+      const scaleX = isMajor ? 1.3 : 0.9;
+
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+
+      // Front face
+      dummy.position.set(x, y, depth / 2 + 0.005);
+      dummy.rotation.set(0, 0, angle + Math.PI / 2);
+      dummy.scale.set(scaleX, scaleY, 1);
+      dummy.updateMatrix();
+      frontMeshRef.current?.setMatrixAt(i, dummy.matrix);
+
+      // Back face
+      dummy.position.set(x, y, -depth / 2 - 0.005);
+      dummy.updateMatrix();
+      backMeshRef.current?.setMatrixAt(i, dummy.matrix);
     }
 
-    return ticks;
-  }, [count, majorInterval]);
+    if (frontMeshRef.current) frontMeshRef.current.instanceMatrix.needsUpdate = true;
+    if (backMeshRef.current) backMeshRef.current.instanceMatrix.needsUpdate = true;
+  }, [radius, count, majorInterval, depth]);
 
   return (
     <group>
-      {tickData.map((tick, i) => {
-        const x = Math.cos(tick.angle) * radius;
-        const y = Math.sin(tick.angle) * radius;
-
-        return (
-          <group
-            key={`tick-${i}`}
-            position={[x, y, depth / 2 + 0.005]}
-            rotation={[0, 0, tick.angle + Math.PI / 2]}
-          >
-            <mesh>
-              <boxGeometry args={[tick.width, tick.length, 0.015]} />
-              <meshStandardMaterial
-                color={tick.isMajor ? color : CHRONOS_PALETTE.antiqueBronze}
-                roughness={0.25}
-                metalness={0.9}
-              />
-            </mesh>
-
-            {/* Symmetrical back face engraving */}
-            <mesh position={[0, 0, -depth - 0.01]}>
-              <boxGeometry args={[tick.width, tick.length, 0.015]} />
-              <meshStandardMaterial
-                color={tick.isMajor ? color : CHRONOS_PALETTE.antiqueBronze}
-                roughness={0.25}
-                metalness={0.9}
-              />
-            </mesh>
-
-            {/* Ancient celestial diamond notch on major cardinal points */}
-            {tick.isMajor && i % (majorInterval * 3) === 0 && (
-              <mesh position={[0, tick.length / 2 + 0.06, 0]} rotation={[0, 0, Math.PI / 4]}>
-                <boxGeometry args={[0.07, 0.07, 0.02]} />
-                <meshStandardMaterial
-                  color={CHRONOS_PALETTE.goldLight}
-                  roughness={0.2}
-                  metalness={0.95}
-                />
-              </mesh>
-            )}
-          </group>
-        );
-      })}
+      <instancedMesh
+        ref={frontMeshRef}
+        args={[sharedGeometry, sharedMaterial, count]}
+      />
+      <instancedMesh
+        ref={backMeshRef}
+        args={[sharedGeometry, sharedMaterial, count]}
+      />
     </group>
   );
 }

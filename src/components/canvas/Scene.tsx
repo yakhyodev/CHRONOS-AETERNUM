@@ -1,37 +1,41 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useSyncExternalStore } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { CHRONOS_PALETTE, type CinematicShotId } from '@/lib/constants';
+import { chronosStore, QUALITY_PRESETS, type QualityPreset } from '@/lib/chronosStore';
+import { isWebGLAvailable } from '@/lib/webglDetect';
 import { ChamberEnvironment } from './chamber/ChamberEnvironment';
 import { ChronosCore } from './core/ChronosCore';
 import { CoreLighting } from './CoreLighting';
 import { EnvironmentalParticles } from './EnvironmentalParticles';
 import { CinematicCameraRig } from './CinematicCameraRig';
+import { WebGLFallback } from '../ui/WebGLFallback';
 
 interface SceneProps {
   currentShot?: CinematicShotId;
-  activationProgress?: number;
   reducedMotion?: boolean;
   className?: string;
 }
 
 export function Scene({
   currentShot = 'shot-01',
-  activationProgress = 0,
   reducedMotion = false,
   className = '',
 }: SceneProps) {
   const [mounted, setMounted] = useState(false);
-  const [dpr, setDpr] = useState<number[]>([1, 1.5]);
+  const [webglSupported, setWebglSupported] = useState(true);
+
+  // Sync with store state changes without forcing frame-level React reconciliations
+  const qualityPreset = useSyncExternalStore(
+    (cb) => chronosStore.subscribe(cb),
+    () => chronosStore.qualityPreset,
+    () => 'high' as QualityPreset
+  );
 
   useEffect(() => {
     setMounted(true);
-    // Device-aware pixel ratio capping for high-performance 60fps rendering
-    if (typeof window !== 'undefined') {
-      const ratio = window.devicePixelRatio || 1;
-      setDpr([1, Math.min(ratio, 2)]);
-    }
+    setWebglSupported(isWebGLAvailable());
   }, []);
 
   if (!mounted) {
@@ -47,17 +51,25 @@ export function Scene({
     );
   }
 
+  // WebGL Fallback for devices without hardware WebGL support
+  if (!webglSupported) {
+    return <WebGLFallback onRetry={() => setWebglSupported(isWebGLAvailable())} />;
+  }
+
+  const qualityConfig = QUALITY_PRESETS[qualityPreset] || QUALITY_PRESETS.high;
+
   return (
     <div className={`relative w-full h-full ${className}`}>
       <Canvas
         camera={{ position: [0, 2.5, 26], fov: 54, near: 0.1, far: 90 }}
         gl={{
-          antialias: true,
+          antialias: qualityPreset !== 'low',
           alpha: false,
           powerPreference: 'high-performance',
+          stencil: false,
         }}
-        dpr={dpr as [number, number]}
-        shadows={true}
+        dpr={qualityConfig.dpr}
+        shadows={qualityConfig.shadows}
       >
         {/* Void Black Chamber Background */}
         <color attach="background" args={[CHRONOS_PALETTE.voidBlack]} />
@@ -66,27 +78,26 @@ export function Scene({
         <fog attach="fog" args={[CHRONOS_PALETTE.voidBlack, 14, 58]} />
 
         {/* Chamber Lights (Amber Core, Overhead Shaft, Cool Rim) */}
-        <CoreLighting activationProgress={activationProgress} />
+        <CoreLighting
+          shadowMapSize={qualityConfig.shadowMapSize}
+          enableShadows={qualityConfig.shadows}
+        />
 
         {/* Dynamic Camera Choreography Rig */}
         <CinematicCameraRig
           currentShot={currentShot}
-          activationProgress={activationProgress}
           reducedMotion={reducedMotion}
         />
 
         <Suspense fallback={null}>
           {/* Monumental Underground Chamber Architecture */}
-          <ChamberEnvironment activationProgress={activationProgress} />
+          <ChamberEnvironment />
 
           {/* Real 3D Astronomical Chronos Core */}
-          <ChronosCore activationProgress={activationProgress} />
+          <ChronosCore />
 
           {/* Floating Chamber Dust & Embers */}
-          <EnvironmentalParticles
-            count={360}
-            activationProgress={activationProgress}
-          />
+          <EnvironmentalParticles count={qualityConfig.particleCount} />
         </Suspense>
       </Canvas>
     </div>

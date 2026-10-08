@@ -1,19 +1,16 @@
 'use client';
 
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { CHRONOS_PALETTE } from '@/lib/constants';
+import { chronosStore } from '@/lib/chronosStore';
 
 interface EnvironmentalParticlesProps {
   count?: number;
-  activationProgress?: number;
 }
 
-export function EnvironmentalParticles({
-  count = 350,
-  activationProgress = 0,
-}: EnvironmentalParticlesProps) {
+export function EnvironmentalParticles({ count = 350 }: EnvironmentalParticlesProps) {
   const pointsRef = useRef<THREE.Points>(null);
 
   const [positions, velocities] = useMemo(() => {
@@ -34,11 +31,29 @@ export function EnvironmentalParticles({
     return [pos, vel];
   }, [count]);
 
+  const particleMaterial = useMemo(() => {
+    return new THREE.PointsMaterial({
+      size: 0.07,
+      color: CHRONOS_PALETTE.emberLight,
+      transparent: true,
+      opacity: 0.65,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      particleMaterial.dispose();
+    };
+  }, [particleMaterial]);
+
   useFrame((_, delta) => {
     if (!pointsRef.current) return;
     const posAttr = pointsRef.current.geometry.attributes.position as THREE.BufferAttribute;
     const array = posAttr.array as Float32Array;
-    const speedMult = 1.0 + activationProgress * 3.5;
+    const actProgress = chronosStore.activationProgress;
+    const speedMult = 1.0 + actProgress * 3.5;
 
     for (let i = 0; i < count; i++) {
       const idx = i * 3;
@@ -57,21 +72,13 @@ export function EnvironmentalParticles({
   });
 
   return (
-    <points ref={pointsRef}>
+    <points ref={pointsRef} material={particleMaterial}>
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
           args={[positions, 3]}
         />
       </bufferGeometry>
-      <pointsMaterial
-        size={0.07}
-        color={CHRONOS_PALETTE.emberLight}
-        transparent={true}
-        opacity={0.65}
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-      />
     </points>
   );
 }

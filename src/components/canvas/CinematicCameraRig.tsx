@@ -5,29 +5,38 @@ import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { gsap } from '@/lib/gsap';
 import { CINEMATIC_SHOTS, type CinematicShotId } from '@/lib/constants';
+import { chronosStore } from '@/lib/chronosStore';
 
 interface CinematicCameraRigProps {
   currentShot: CinematicShotId;
-  activationProgress?: number;
   reducedMotion?: boolean;
 }
 
 export function CinematicCameraRig({
   currentShot,
-  activationProgress = 0,
   reducedMotion = false,
 }: CinematicCameraRigProps) {
   const { camera, size } = useThree();
-  const targetRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 3.2, 0));
-  const mouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Stable authored base positions (GSAP modifies these; procedural effects add to them without drift)
+  const baseCameraPos = useRef<THREE.Vector3>(new THREE.Vector3(0, 2.5, 26));
+  const baseTargetPos = useRef<THREE.Vector3>(new THREE.Vector3(0, 3.2, 0));
+  
+  // Reusable vector for lookAt calculations to avoid GC allocations in useFrame
+  const tempLookAt = useRef<THREE.Vector3>(new THREE.Vector3(0, 3.2, 0));
+
+  // Damped mouse parallax
+  const mouseTarget = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const mouseDamped = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
   const activeTimelineRef = useRef<gsap.core.Timeline | null>(null);
   const isFirstRender = useRef(true);
 
   // Mouse parallax tracking
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      mouseRef.current.x = (e.clientX / window.innerWidth) * 2 - 1;
-      mouseRef.current.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      mouseTarget.current.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouseTarget.current.y = -(e.clientY / window.innerHeight) * 2 + 1;
     };
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
@@ -36,35 +45,39 @@ export function CinematicCameraRig({
     };
   }, []);
 
-  // Responsive camera adjustments for portrait/mobile aspect ratios
+  // Authored shot transitions via GSAP tweening base positions
   useEffect(() => {
     const isMobile = size.width < 768;
     const config = CINEMATIC_SHOTS.find((s) => s.id === currentShot) || CINEMATIC_SHOTS[0];
 
-    // Kill any active running camera tween
+    // Cancel existing active camera timeline
     if (activeTimelineRef.current) {
       activeTimelineRef.current.kill();
     }
 
-    const duration = reducedMotion ? 0.1 : 2.2;
-    const targetPos = new THREE.Vector3(...config.targetPosition);
+    const duration = reducedMotion ? 0.05 : 2.0;
 
-    // On mobile, back up slightly along Z to preserve monumental framing
+    // Mobile aspect ratio compensation (backs up along Z and reduces X width)
     const camZMultiplier = isMobile ? 1.25 : 1.0;
     const camXMultiplier = isMobile ? 0.7 : 1.0;
-    const endPos = {
+    const targetCamPos = {
       x: config.cameraPosition[0] * camXMultiplier,
       y: config.cameraPosition[1],
       z: config.cameraPosition[2] * camZMultiplier,
     };
-
+    const targetLookAtPos = {
+      x: config.targetPosition[0],
+      y: config.targetPosition[1],
+      z: config.targetPosition[2],
+    };
     const targetFov = isMobile ? config.fov + 8 : config.fov;
 
-    // First render immediate snap
+    // First render immediate placement without tween delay
     if (isFirstRender.current) {
       isFirstRender.current = false;
-      camera.position.set(endPos.x, endPos.y, endPos.z);
-      targetRef.current.copy(targetPos);
+      baseCameraPos.current.set(targetCamPos.x, targetCamPos.y, targetCamPos.z);
+      baseTargetPos.current.set(targetLookAtPos.x, targetLookAtPos.y, targetLookAtPos.z);
+      camera.position.copy(baseCameraPos.current);
       if (camera instanceof THREE.PerspectiveCamera) {
         camera.fov = targetFov;
         camera.updateProjectionMatrix();
@@ -72,23 +85,33 @@ export function CinematicCameraRig({
       return;
     }
 
-    const tl = gsap.timeline();
-    activeTimelineRef.current = tl;
-
-    tl.to(camera.position, {
-      x: endPos.x,
-      y: endPos.y,
-      z: endPos.z,
-      duration,
-      ease: 'power2.inOut',
+    // Context-safe GSAP timeline
+    const tl = gsap.timeline({
+      onComplete: () => {
+        chronosStore.setIsTransitioning(false);
+      },
     });
+    activeTimelineRef.current = tl;
+    chronosStore.setIsTransitioning(true);
 
     tl.to(
-      targetRef.current,
+      baseCameraPos.current,
       {
-        x: targetPos.x,
-        y: targetPos.y,
-        z: targetPos.z,
+        x: targetCamPos.x,
+        y: targetCamPos.y,
+        z: targetCamPos.z,
+        duration,
+        ease: 'power2.inOut',
+      },
+      0
+    );
+
+    tl.to(
+      baseTargetPos.current,
+      {
+        x: targetLookAtPos.x,
+        y: targetLookAtPos.y,
+        z: targetLookAtPos.z,
         duration,
         ease: 'power2.inOut',
       },
@@ -96,7 +119,6 @@ export function CinematicCameraRig({
     );
 
     if (camera instanceof THREE.PerspectiveCamera) {
-      const targetFov = isMobile ? config.fov + 8 : config.fov;
       tl.to(
         camera,
         {
@@ -114,25 +136,47 @@ export function CinematicCameraRig({
     };
   }, [currentShot, camera, size.width, reducedMotion]);
 
-  // Subtle continuous cinematic sway and lookAt
+  // Frame loop: computes non-cumulative procedural offsets relative to base positions
   useFrame((state, delta) => {
-    if (reducedMotion) {
-      camera.lookAt(targetRef.current);
+    const isReduced = reducedMotion || chronosStore.reducedMotion;
+
+    if (isReduced) {
+      camera.position.copy(baseCameraPos.current);
+      camera.lookAt(baseTargetPos.current);
       return;
     }
 
     const t = state.clock.getElapsedTime();
-    // Gentle handheld camera breathing
-    const swayX = Math.sin(t * 0.4) * 0.05 + mouseRef.current.x * 0.25;
-    const swayY = Math.cos(t * 0.3) * 0.04 + mouseRef.current.y * 0.15;
+    const actProgress = chronosStore.activationProgress;
 
-    // Temporal pulse vibration during activation
-    const jitter = activationProgress > 0.05 ? (Math.random() - 0.5) * 0.025 * activationProgress : 0;
+    // Damped mouse tracking (low-pass filter)
+    mouseDamped.current.x += (mouseTarget.current.x - mouseDamped.current.x) * Math.min(delta * 4.0, 1.0);
+    mouseDamped.current.y += (mouseTarget.current.y - mouseDamped.current.y) * Math.min(delta * 4.0, 1.0);
 
-    camera.position.x += (swayX + jitter) * delta * 2.0;
-    camera.position.y += (swayY + jitter) * delta * 2.0;
+    // Subtle bounded organic breathing
+    const swayX = Math.sin(t * 0.4) * 0.06 + mouseDamped.current.x * 0.28;
+    const swayY = Math.cos(t * 0.3) * 0.05 + mouseDamped.current.y * 0.16;
 
-    camera.lookAt(targetRef.current);
+    // Bounded deterministic high-frequency harmonics during activation (NO Math.random() drift)
+    const shakeX = actProgress > 0.02 ? Math.sin(t * 43.7) * Math.cos(t * 19.3) * 0.02 * actProgress : 0;
+    const shakeY = actProgress > 0.02 ? Math.cos(t * 37.1) * Math.sin(t * 23.9) * 0.015 * actProgress : 0;
+    const shakeZ = actProgress > 0.02 ? Math.sin(t * 31.4) * 0.012 * actProgress : 0;
+
+    // Set absolute position relative to authored base (ZERO cumulative drift)
+    camera.position.set(
+      baseCameraPos.current.x + swayX + shakeX,
+      baseCameraPos.current.y + swayY + shakeY,
+      baseCameraPos.current.z + shakeZ
+    );
+
+    // Compute lookAt target with subtle parallax lead
+    tempLookAt.current.set(
+      baseTargetPos.current.x + mouseDamped.current.x * 0.08,
+      baseTargetPos.current.y + mouseDamped.current.y * 0.06,
+      baseTargetPos.current.z
+    );
+
+    camera.lookAt(tempLookAt.current);
   });
 
   return null;

@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo } from 'react';
-import * as THREE from 'three';
 import { CHRONOS_PALETTE } from '@/lib/constants';
 
 export function StoneColumns() {

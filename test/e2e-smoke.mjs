@@ -1,0 +1,66 @@
+// E2E Smoke test script for CHRONOS — Aeternum
+import http from 'http';
+
+function checkUrl(url) {
+  return new Promise((resolve, reject) => {
+    http.get(url, (res) => {
+      let data = '';
+      res.on('data', (chunk) => (data += chunk));
+      res.on('end', () => resolve({ statusCode: res.statusCode, data }));
+    }).on('error', reject);
+  });
+}
+
+async function runSmokeTests() {
+  console.log('--- CHRONOS E2E SMOKE TESTS ---');
+  const baseUrl = 'http://localhost:3000';
+
+  try {
+    // 1. Root page test
+    console.log('[1/4] Verifying root page response...');
+    const page = await checkUrl(baseUrl);
+    if (page.statusCode !== 200) {
+      throw new Error(`Expected HTTP 200, got ${page.statusCode}`);
+    }
+    console.log('  ✓ Root page responded with HTTP 200');
+
+    // 2. Title & Branding verification
+    console.log('[2/4] Verifying core typography & assets in response...');
+    if (!page.data.includes('CHRONOS')) {
+      throw new Error('Title "CHRONOS" missing from HTML payload');
+    }
+    if (!page.data.includes('Aeternum') && !page.data.includes('AETERNUM')) {
+      throw new Error('Subtitle "AETERNUM" missing from HTML payload');
+    }
+    console.log('  ✓ Branding and metadata verified in HTML');
+
+    // 3. Asset availability
+    console.log('[3/4] Verifying visual assets (emblem and atmosphere overlay)...');
+    const emblem = await checkUrl(`${baseUrl}/chronos/chronos-core-emblem.svg`);
+    if (emblem.statusCode !== 200) {
+      throw new Error(`Emblem SVG returned ${emblem.statusCode}`);
+    }
+
+    const overlay = await checkUrl(`${baseUrl}/chronos/atmosphere-overlay.svg`);
+    if (overlay.statusCode !== 200) {
+      throw new Error(`Atmosphere SVG returned ${overlay.statusCode}`);
+    }
+    console.log('  ✓ SVG assets served cleanly');
+
+    // 4. Test Query Routing (?shot=shot-05&active=1)
+    console.log('[4/4] Verifying shot query route handling...');
+    const shotTest = await checkUrl(`${baseUrl}?shot=shot-03`);
+    if (shotTest.statusCode !== 200) {
+      throw new Error(`Query routing failed with ${shotTest.statusCode}`);
+    }
+    console.log('  ✓ Query routing supported without SSR crashes');
+
+    console.log('\nALL 4 E2E SMOKE TESTS PASSED CLEANLY.\n');
+    process.exit(0);
+  } catch (err) {
+    console.error('Smoke Test Failed:', err.message);
+    process.exit(1);
+  }
+}
+
+runSmokeTests();

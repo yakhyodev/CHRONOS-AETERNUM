@@ -2,21 +2,25 @@
 
 import { useState } from 'react';
 import type { CinematicShotId } from '@/lib/constants';
+import type { ActivationState, QualityPreset } from '@/lib/chronosStore';
+import { chronosStore } from '@/lib/chronosStore';
 
 interface DebugPanelProps {
   currentShot: CinematicShotId;
-  isActive: boolean;
-  activationProgress: number;
+  activationState: ActivationState;
+  qualityPreset: QualityPreset;
   onSelectShot: (shot: CinematicShotId) => void;
   onToggleActive: () => void;
+  onSetQuality: (quality: QualityPreset) => void;
 }
 
 export function DebugPanel({
   currentShot,
-  isActive,
-  activationProgress,
+  activationState,
+  qualityPreset,
   onSelectShot,
   onToggleActive,
+  onSetQuality,
 }: DebugPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -39,9 +43,9 @@ export function DebugPanel({
           [DEBUG]
         </button>
       ) : (
-        <div className="w-56 rounded border border-white/15 bg-[#08090D]/95 p-3 text-zinc-300 shadow-2xl backdrop-blur-md">
+        <div className="w-64 rounded border border-white/15 bg-[#08090D]/95 p-3 text-zinc-300 shadow-2xl backdrop-blur-md">
           <div className="flex items-center justify-between border-b border-white/10 pb-1.5 font-bold text-[#EAB774]">
-            <span>PHASE 02 DEBUG</span>
+            <span>PHASE 2.2 DEBUG</span>
             <button
               type="button"
               onClick={() => setIsOpen(false)}
@@ -51,9 +55,42 @@ export function DebugPanel({
             </button>
           </div>
           <div className="mt-2 space-y-1 text-zinc-400">
-            <div>Shot: <span className="text-white">{currentShot}</span></div>
-            <div>Active: <span className="text-white">{isActive ? 'TRUE' : 'FALSE'}</span></div>
-            <div>Progress: <span className="text-white">{(activationProgress * 100).toFixed(0)}%</span></div>
+            <div className="flex items-center gap-1">
+              <span>Shot:</span>
+              {(['shot-01', 'shot-02', 'shot-03', 'shot-04', 'shot-05'] as const).map((s, idx) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => onSelectShot(s)}
+                  className={`px-1 py-0.5 rounded text-[9px] ${
+                    currentShot === s
+                      ? 'bg-[#D4AF37] text-black font-bold'
+                      : 'bg-white/10 text-zinc-300 hover:text-white'
+                  }`}
+                >
+                  0{idx + 1}
+                </button>
+              ))}
+            </div>
+            <div>State: <span className="text-amber-300">{activationState.toUpperCase()}</span></div>
+            <div>Continuous Progress: <span className="text-white">{(chronosStore.activationProgress * 100).toFixed(0)}%</span></div>
+            <div className="flex items-center gap-1 pt-1">
+              <span>Quality:</span>
+              {(['high', 'medium', 'low'] as QualityPreset[]).map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => onSetQuality(q)}
+                  className={`px-1.5 py-0.5 rounded text-[9px] uppercase ${
+                    qualityPreset === q
+                      ? 'bg-[#D4AF37] text-black font-bold'
+                      : 'bg-white/10 text-zinc-300'
+                  }`}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="mt-2.5 pt-2 border-t border-white/10 flex gap-1">
             <button
@@ -61,7 +98,7 @@ export function DebugPanel({
               onClick={onToggleActive}
               className="flex-1 rounded border border-[#D4AF37]/40 bg-[#D4AF37]/10 py-1 text-center text-[9px] text-[#F5F3ED]"
             >
-              Toggle Active
+              Toggle Activation
             </button>
           </div>
         </div>

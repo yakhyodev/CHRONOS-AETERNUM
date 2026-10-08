@@ -1,6 +1,4 @@
 'use client';
-
-import * as THREE from 'three';
 import { CHRONOS_PALETTE } from '@/lib/constants';
 
 export function ChamberFloor() {

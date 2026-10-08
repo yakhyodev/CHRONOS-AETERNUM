@@ -1,9 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import dynamic from 'next/dynamic';
 import { gsap } from '@/lib/gsap';
 import { CINEMATIC_SHOTS, type CinematicShotId } from '@/lib/constants';
+import {
+  chronosStore,
+  type ActivationState,
+  type QualityPreset,
+} from '@/lib/chronosStore';
 import { CinematicUI } from '@/components/ui/CinematicUI';
 import { AtmosphereOverlay } from '@/components/ui/AtmosphereOverlay';
 import { DebugPanel } from '@/components/ui/DebugPanel';
@@ -27,97 +32,166 @@ const Scene = dynamic(
 );
 
 export default function ChronosPhase02Page() {
-  const [currentShot, setCurrentShot] = useState<CinematicShotId>('shot-01');
-  const [isActive, setIsActive] = useState<boolean>(false);
-  const [activationProgress, setActivationProgress] = useState<number>(0);
-  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
-  const [reducedMotion, setReducedMotion] = useState<boolean>(false);
+  // Sync discrete states with chronosStore
+  const currentShot = useSyncExternalStore(
+    (cb) => chronosStore.subscribe(cb),
+    () => chronosStore.currentShot,
+    () => 'shot-01' as CinematicShotId
+  );
 
-  // Mutable progress proxy for GSAP tweening
-  const progressProxy = useRef<{ value: number }>({ value: 0 });
+  const activationState = useSyncExternalStore(
+    (cb) => chronosStore.subscribe(cb),
+    () => chronosStore.activationState,
+    () => 'idle' as ActivationState
+  );
+
+  const qualityPreset = useSyncExternalStore(
+    (cb) => chronosStore.subscribe(cb),
+    () => chronosStore.qualityPreset,
+    () => 'high' as QualityPreset
+  );
+
+  const reducedMotion = useSyncExternalStore(
+    (cb) => chronosStore.subscribe(cb),
+    () => chronosStore.reducedMotion,
+    () => false
+  );
+
   const activeTimeline = useRef<gsap.core.Timeline | null>(null);
+  const isProgrammaticScroll = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Check user prefers-reduced-motion system preference and optional URL query parameters for automated testing
+  // Detect user's reduced-motion preference and process query parameters on mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-      setReducedMotion(mediaQuery.matches);
+    if (typeof window === 'undefined') return;
 
-      const handleChange = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
-      mediaQuery.addEventListener('change', handleChange);
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    chronosStore.setReducedMotion(mediaQuery.matches);
 
-      // URL search params support for testing & deep linking shots
-      const params = new URLSearchParams(window.location.search);
-      const urlShot = params.get('shot') as CinematicShotId;
-      if (urlShot && CINEMATIC_SHOTS.some((s) => s.id === urlShot)) {
-        setCurrentShot(urlShot);
+    const handleMotionChange = (e: MediaQueryListEvent) => {
+      chronosStore.setReducedMotion(e.matches);
+    };
+    mediaQuery.addEventListener('change', handleMotionChange);
+
+    // Deep-linking URL query params for testing (e.g. ?shot=shot-03&active=1&quality=medium)
+    const params = new URLSearchParams(window.location.search);
+    const urlShot = params.get('shot') as CinematicShotId;
+    if (urlShot && CINEMATIC_SHOTS.some((s) => s.id === urlShot)) {
+      chronosStore.setCurrentShot(urlShot);
+      const shotIdx = CINEMATIC_SHOTS.findIndex((s) => s.id === urlShot);
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (maxScroll > 0 && shotIdx >= 0) {
+        const targetScroll = (shotIdx / (CINEMATIC_SHOTS.length - 1)) * maxScroll;
+        window.scrollTo({ top: targetScroll, behavior: 'instant' as ScrollBehavior });
       }
-      if (params.get('active') === 'true' || params.get('active') === '1') {
-        setIsActive(true);
-        progressProxy.current.value = 1.0;
-        setActivationProgress(1.0);
-      }
-
-      return () => mediaQuery.removeEventListener('change', handleChange);
     }
+
+    if (params.get('active') === 'true' || params.get('active') === '1') {
+      chronosStore.setActivationProgress(1.0);
+      chronosStore.setActivationState('active');
+    }
+
+    const urlQuality = params.get('quality') as QualityPreset;
+    if (urlQuality && ['high', 'medium', 'low'].includes(urlQuality)) {
+      chronosStore.setQualityPreset(urlQuality);
+    }
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleMotionChange);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    };
   }, []);
 
-  // Activation sequence orchestrator
+  // Unified Activation Sequence (discrete React states + zero-rerender continuous 3D tween)
   const handleActivate = useCallback(() => {
-    if (isTransitioning) return;
+    if (activationState === 'activating' || activationState === 'deactivating') {
+      return; // Prevent overlapping transitions
+    }
 
-    setIsTransitioning(true);
     if (activeTimeline.current) {
       activeTimeline.current.kill();
     }
 
-    const targetActive = !isActive;
-    const endProgress = targetActive ? 1.0 : 0.0;
-    const duration = reducedMotion ? 0.3 : 2.5;
+    const isEngaging = activationState === 'idle';
+    const targetState: ActivationState = isEngaging ? 'active' : 'idle';
+    const intermediateState: ActivationState = isEngaging ? 'activating' : 'deactivating';
+    const targetProgress = isEngaging ? 1.0 : 0.0;
+    const duration = reducedMotion ? 0.15 : 2.2;
 
+    chronosStore.setActivationState(intermediateState);
+
+    // Context-safe animation
+    const proxy = { value: chronosStore.activationProgress };
     const tl = gsap.timeline({
       onComplete: () => {
-        setIsActive(targetActive);
-        setIsTransitioning(false);
+        chronosStore.setActivationProgress(targetProgress);
+        chronosStore.setActivationState(targetState);
       },
     });
     activeTimeline.current = tl;
 
-    // Transition camera to Shot 05 (Activation) when engaging
-    if (targetActive) {
-      setCurrentShot('shot-05');
+    // Camera moves to activation shot when engaging
+    if (isEngaging) {
+      chronosStore.setCurrentShot('shot-05');
+      // Synchronize scroll position smoothly
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      const shotIdx = CINEMATIC_SHOTS.findIndex((s) => s.id === 'shot-05');
+      if (maxScroll > 0 && shotIdx >= 0) {
+        isProgrammaticScroll.current = true;
+        const targetY = (shotIdx / (CINEMATIC_SHOTS.length - 1)) * maxScroll;
+        window.scrollTo({ top: targetY, behavior: 'smooth' });
+        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+        scrollTimeoutRef.current = setTimeout(() => {
+          isProgrammaticScroll.current = false;
+        }, 1200);
+      }
     }
 
-    tl.to(progressProxy.current, {
-      value: endProgress,
+    tl.to(proxy, {
+      value: targetProgress,
       duration,
       ease: 'power3.inOut',
       onUpdate: () => {
-        setActivationProgress(progressProxy.current.value);
+        // Direct mutation into store without triggering React re-render!
+        chronosStore.setActivationProgress(proxy.value);
       },
     });
-  }, [isActive, isTransitioning, reducedMotion]);
+  }, [activationState, reducedMotion]);
 
-  // Shot switcher handler
+  // Synchronized shot navigation (updates both camera shot and window scroll position)
   const handleSelectShot = useCallback((shotId: CinematicShotId) => {
-    setCurrentShot(shotId);
+    const shotIdx = CINEMATIC_SHOTS.findIndex((s) => s.id === shotId);
+    if (shotIdx === -1) return;
+
+    chronosStore.setCurrentShot(shotId);
+
+    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+    if (maxScroll > 0) {
+      isProgrammaticScroll.current = true;
+      const targetY = (shotIdx / (CINEMATIC_SHOTS.length - 1)) * maxScroll;
+      window.scrollTo({ top: targetY, behavior: 'smooth' });
+
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = setTimeout(() => {
+        isProgrammaticScroll.current = false;
+      }, 1000);
+    }
   }, []);
 
-  // Scroll listener for optional story progression through the 6 cinematic shots
+  // Bi-directional window scroll listener (seamless forward & reverse scrolling)
   useEffect(() => {
     const handleScroll = () => {
+      if (isProgrammaticScroll.current) return;
+
       const scrollY = window.scrollY;
       const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
       if (maxScroll <= 0) return;
 
       const progress = Math.min(Math.max(scrollY / maxScroll, 0), 1);
-      const shotIndex = Math.min(
-        Math.floor(progress * CINEMATIC_SHOTS.length),
-        CINEMATIC_SHOTS.length - 1
-      );
-      const targetShot = CINEMATIC_SHOTS[shotIndex].id;
+      chronosStore.setTimelineProgress(progress);
 
-      setCurrentShot((prev) => (prev !== targetShot ? targetShot : prev));
+      const targetShot = chronosStore.getShotFromProgress(progress);
+      chronosStore.setCurrentShot(targetShot);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -133,7 +207,6 @@ export default function ChronosPhase02Page() {
       <div className="fixed inset-0 z-10 pointer-events-auto">
         <Scene
           currentShot={currentShot}
-          activationProgress={activationProgress}
           reducedMotion={reducedMotion}
         />
       </div>
@@ -141,22 +214,21 @@ export default function ChronosPhase02Page() {
       {/* 3. Foreground Cinematic Interface (Hero Title, CTAs, Telemetry, Shot Navigator) */}
       <div className="fixed inset-0 z-30 pointer-events-none">
         <CinematicUI
-          isActive={isActive}
-          activationProgress={activationProgress}
+          activationState={activationState}
           currentShot={currentShot}
           onActivate={handleActivate}
           onSelectShot={handleSelectShot}
-          isTransitioning={isTransitioning}
         />
       </div>
 
       {/* 4. Development-only Minimal Status Panel */}
       <DebugPanel
         currentShot={currentShot}
-        isActive={isActive}
-        activationProgress={activationProgress}
+        activationState={activationState}
+        qualityPreset={qualityPreset}
         onSelectShot={handleSelectShot}
         onToggleActive={handleActivate}
+        onSetQuality={(q) => chronosStore.setQualityPreset(q)}
       />
     </main>
   );

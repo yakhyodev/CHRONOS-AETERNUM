@@ -1,7 +1,4 @@
 'use client';
-
-import * as THREE from 'three';
-
 export function WandererSilhouette() {
   return (
     <group position={[0, -0.7, 13.5]} rotation={[0, Math.PI, 0]}>

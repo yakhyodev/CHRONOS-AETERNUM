@@ -2,26 +2,39 @@
 
 import Image from 'next/image';
 import { PROJECT_STRINGS, type CinematicShotId, CINEMATIC_SHOTS } from '@/lib/constants';
+import type { ActivationState } from '@/lib/chronosStore';
 import { ShotNavigator } from './ShotNavigator';
 
 interface CinematicUIProps {
-  isActive: boolean;
-  activationProgress: number;
+  activationState: ActivationState;
   currentShot: CinematicShotId;
   onActivate: () => void;
   onSelectShot: (shotId: CinematicShotId) => void;
-  isTransitioning?: boolean;
 }
 
 export function CinematicUI({
-  isActive,
-  activationProgress,
+  activationState,
   currentShot,
   onActivate,
   onSelectShot,
-  isTransitioning = false,
 }: CinematicUIProps) {
   const currentShotConfig = CINEMATIC_SHOTS.find((s) => s.id === currentShot) || CINEMATIC_SHOTS[0];
+  const isBusy = activationState === 'activating' || activationState === 'deactivating';
+  const isActive = activationState === 'active' || activationState === 'activating';
+
+  const getButtonText = () => {
+    switch (activationState) {
+      case 'activating':
+        return 'INITIALIZING...';
+      case 'active':
+        return PROJECT_STRINGS.ctaActive;
+      case 'deactivating':
+        return 'DEACTIVATING...';
+      case 'idle':
+      default:
+        return PROJECT_STRINGS.ctaPrimary;
+    }
+  };
 
   return (
     <div className="pointer-events-none relative z-30 flex min-h-screen flex-col justify-between p-6 sm:p-10 md:p-14">
@@ -83,7 +96,7 @@ export function CinematicUI({
         <div className="mt-8 sm:mt-10">
           <button
             type="button"
-            disabled={isTransitioning}
+            disabled={isBusy}
             onClick={onActivate}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -91,8 +104,8 @@ export function CinematicUI({
                 onActivate();
               }
             }}
-            aria-label={isActive ? 'Chronos Core is Active' : 'Initialize Chronos Core'}
-            className={`pointer-events-auto group relative inline-flex items-center gap-3.5 rounded-full border px-7 py-3.5 text-xs sm:text-sm font-mono tracking-[0.24em] uppercase transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] disabled:opacity-50 ${
+            aria-label={isActive ? 'Chronos Core is Active (Click to Deactivate)' : 'Initialize Chronos Core'}
+            className={`pointer-events-auto group relative inline-flex items-center gap-3.5 rounded-full border px-7 py-3.5 text-xs sm:text-sm font-mono tracking-[0.24em] uppercase transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:ring-offset-2 focus:ring-offset-[#08090D] disabled:opacity-60 disabled:cursor-wait ${
               isActive
                 ? 'border-[#EAB774] bg-[#EAB774]/20 text-[#FFE8B5] shadow-[0_0_30px_rgba(234,183,116,0.4)]'
                 : 'border-[#D4AF37]/60 bg-[#08090D]/80 text-[#F5F3ED] hover:border-[#D4AF37] hover:bg-[#D4AF37]/15 hover:shadow-[0_0_25px_rgba(212,175,55,0.35)]'
@@ -110,9 +123,7 @@ export function CinematicUI({
               />
             </div>
 
-            <span className="font-semibold">
-              {isActive ? PROJECT_STRINGS.ctaActive : PROJECT_STRINGS.ctaPrimary}
-            </span>
+            <span className="font-semibold">{getButtonText()}</span>
 
             {/* Glowing Accent Pill */}
             <div
@@ -147,7 +158,7 @@ export function CinematicUI({
         <ShotNavigator
           currentShot={currentShot}
           onSelectShot={onSelectShot}
-          disabled={isTransitioning}
+          disabled={isBusy}
         />
       </footer>
     </div>

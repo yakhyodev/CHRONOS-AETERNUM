@@ -6,11 +6,7 @@ import { ChamberFloor } from './ChamberFloor';
 import { Braziers } from './Braziers';
 import { WandererSilhouette } from './WandererSilhouette';
 
-interface ChamberEnvironmentProps {
-  activationProgress?: number;
-}
-
-export function ChamberEnvironment({ activationProgress = 0 }: ChamberEnvironmentProps) {
+export function ChamberEnvironment() {
   return (
     <group>
       {/* Ancient Tiered Dais & Stairs */}
@@ -23,7 +19,7 @@ export function ChamberEnvironment({ activationProgress = 0 }: ChamberEnvironmen
       <GrandArches />
 
       {/* Flanking Fire Braziers */}
-      <Braziers activationProgress={activationProgress} />
+      <Braziers />
 
       {/* Observer / Wanderer Silhouette */}
       <WandererSilhouette />
