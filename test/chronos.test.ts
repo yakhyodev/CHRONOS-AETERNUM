@@ -625,6 +625,112 @@ describe('CHRONOS — Aeternum State & Timeline Engine', () => {
       expect(chronosStore.journeyProgress).toBe(0.68);
     });
   });
+
+  describe('Phase 08 — Observer 07, Narrative Chapters & Temporal Memories', () => {
+    it('defines all 6 narrative chapters with locations, years, and transmissions', async () => {
+      const { NARRATIVE_CHAPTERS, ORDERED_CHAPTER_IDS } = await import('../src/types/phase08');
+      expect(ORDERED_CHAPTER_IDS).toHaveLength(6);
+      expect(ORDERED_CHAPTER_IDS).toEqual([
+        'ch-01-awakening',
+        'ch-02-first-memory',
+        'ch-03-pattern',
+        'ch-04-experiment',
+        'ch-05-revelation',
+        'ch-06-warning',
+      ]);
+
+      ORDERED_CHAPTER_IDS.forEach((chapId) => {
+        const chap = NARRATIVE_CHAPTERS[chapId];
+        expect(chap.id).toBe(chapId);
+        expect(chap.title).toBeTruthy();
+        expect(chap.subtitle).toBeTruthy();
+        expect(chap.district).toBeTruthy();
+        expect(chap.districtLabel).toBeTruthy();
+        expect(chap.yearLabel).toBeTruthy();
+        expect(chap.synopsis).toBeTruthy();
+        expect(chap.transmissionLines.length).toBeGreaterThan(0);
+        expect(chap.revelationText).toBeTruthy();
+      });
+    });
+
+    it('defines narrative memory overlays for all 5 Temporal Echoes', async () => {
+      const { ECHO_NARRATIVE_MEMORIES } = await import('../src/types/phase08');
+      const { ORDERED_ECHO_IDS } = await import('../src/types/phase07');
+
+      ORDERED_ECHO_IDS.forEach((echoId) => {
+        const mem = ECHO_NARRATIVE_MEMORIES[echoId];
+        expect(mem).toBeDefined();
+        expect(mem.echoId).toBe(echoId);
+        expect(mem.chapterId).toBeTruthy();
+        expect(mem.artifactClassification).toBeTruthy();
+        expect(mem.archivalMemory).toBeTruthy();
+        expect(mem.observerInsight).toBeTruthy();
+        expect(mem.revelationQuote).toBeTruthy();
+      });
+    });
+
+    it('tracks Observer 07 identity and default chapter unlock', () => {
+      expect(chronosStore.observerId).toBe('OBSERVER 07');
+      expect(chronosStore.unlockedChapters.has('ch-01-awakening')).toBe(true);
+    });
+
+    it('progressively unlocks chapters and reveals Chapter 05 & Chapter 06 based on recovered Echoes', () => {
+      chronosStore.clearDiscoveredEchoes();
+      expect(chronosStore.unlockedChaptersList).toEqual(['ch-01-awakening']);
+
+      // Discover Echo 01 in the-origin -> Unlocks Chapter 02
+      chronosStore.setActiveEra('the-origin');
+      chronosStore.discoverEcho('echo-01-mark');
+      expect(chronosStore.unlockedChapters.has('ch-02-first-memory')).toBe(true);
+      expect(chronosStore.activeEchoMemory?.echoId).toBe('echo-01-mark');
+
+      // Discover Echo 02 in the-kingdom -> Unlocks Chapter 03
+      chronosStore.setActiveEra('the-kingdom');
+      chronosStore.discoverEcho('echo-02-record');
+      expect(chronosStore.unlockedChapters.has('ch-03-pattern')).toBe(true);
+
+      // Discover Echo 04 in the-present -> Unlocks Chapter 04
+      chronosStore.setActiveEra('the-present');
+      chronosStore.discoverEcho('echo-04-blueprint');
+      expect(chronosStore.unlockedChapters.has('ch-04-experiment')).toBe(true);
+
+      // Discover Echo 05 in the-next-age -> Unlocks Chapter 05 (The Revelation)
+      chronosStore.setActiveEra('the-next-age');
+      chronosStore.discoverEcho('echo-05-signal');
+      expect(chronosStore.unlockedChapters.has('ch-05-revelation')).toBe(true);
+      // Chapter 06 is not yet unlocked because Echo 03 is still missing
+      expect(chronosStore.unlockedChapters.has('ch-06-warning')).toBe(false);
+
+      // Discover Echo 03 in the-machine -> All 5 echoes discovered -> Unlocks Chapter 06 (The Warning)
+      chronosStore.setActiveEra('the-machine');
+      chronosStore.discoverEcho('echo-03-metal');
+      expect(chronosStore.getDiscoveredEchoesCount()).toBe(5);
+      expect(chronosStore.unlockedChapters.has('ch-06-warning')).toBe(true);
+      expect(chronosStore.unlockedChaptersList).toHaveLength(6);
+    });
+
+    it('triggers and dismisses Observer 07 transmissions', () => {
+      chronosStore.dismissTransmission();
+      expect(chronosStore.activeTransmission).toBeNull();
+
+      chronosStore.triggerTransmission('OBSERVER 07', ['TEST SIGNAL LINE 1', 'TEST SIGNAL LINE 2']);
+      expect(chronosStore.activeTransmission).not.toBeNull();
+      expect(chronosStore.activeTransmission?.sender).toBe('OBSERVER 07');
+      expect(chronosStore.activeTransmission?.lines).toHaveLength(2);
+
+      chronosStore.dismissTransmission();
+      expect(chronosStore.activeTransmission).toBeNull();
+    });
+
+    it('opens and closes cinematic echo memory overlay', () => {
+      chronosStore.openEchoMemory('echo-05-signal');
+      expect(chronosStore.activeEchoMemory?.echoId).toBe('echo-05-signal');
+      expect(chronosStore.activeEchoMemory?.revelationQuote).toContain('We sent the Core to the origin');
+
+      chronosStore.closeEchoMemory();
+      expect(chronosStore.activeEchoMemory).toBeNull();
+    });
+  });
 });
 
 

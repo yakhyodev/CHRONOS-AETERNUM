@@ -121,9 +121,19 @@ async function runSmokeTests() {
     if (manifest07.statusCode !== 200) {
       throw new Error(`Phase 07 manifest.json returned ${manifest07.statusCode}`);
     }
-    console.log('  ✓ Phase 07 Explore Mode routing & anomaly assets verified');
+    // 10. Test Phase 08 Observer 07 Story Assets & Manifest
+    console.log('[10/10] Verifying Phase 08 story assets & manifest...');
+    const storyArt = await checkUrl(`${baseUrl}/chronos/phase08/00-phase08-story-art-direction.jpg`);
+    if (storyArt.statusCode !== 200) {
+      throw new Error(`Phase 08 art direction asset returned ${storyArt.statusCode}`);
+    }
+    const manifest08 = await checkUrl(`${baseUrl}/chronos/phase08/manifest.json`);
+    if (manifest08.statusCode !== 200) {
+      throw new Error(`Phase 08 manifest.json returned ${manifest08.statusCode}`);
+    }
+    console.log('  ✓ Phase 08 Observer 07 narrative assets verified');
 
-    console.log('\nALL 9 E2E SMOKE TESTS PASSED CLEANLY.\n');
+    console.log('\nALL 10 E2E SMOKE TESTS PASSED CLEANLY.\n');
     process.exit(0);
   } catch (err) {
     console.error('Smoke Test Failed:', err.message);

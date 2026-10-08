@@ -25,6 +25,13 @@ import type {
   TemporalEchoConfig,
 } from '../types/phase07';
 import { TEMPORAL_ECHOES, ORDERED_ECHO_IDS } from '../types/phase07';
+import {
+  type NarrativeChapterId,
+  type EchoNarrativeMemory,
+  NARRATIVE_CHAPTERS,
+  ORDERED_CHAPTER_IDS,
+  ECHO_NARRATIVE_MEMORIES,
+} from '../types/phase08';
 
 export type WorldMode =
   | 'chamber'
@@ -110,11 +117,25 @@ class ChronosStore {
   public isJournalOpen = false;
   public lastStoryProgress = 0;
 
+  // Phase 08 Observer 07 & Narrative Architecture
+  public readonly observerId = 'OBSERVER 07';
+  public hasSeenAwakening = false;
+  public unlockedChapters = new Set<NarrativeChapterId>(['ch-01-awakening']);
+  public unlockedChaptersList: NarrativeChapterId[] = ['ch-01-awakening'];
+  public activeEchoMemory: EchoNarrativeMemory | null = null;
+  public activeTransmission: {
+    sender: string;
+    lines: string[];
+    chapterId?: NarrativeChapterId;
+  } | null = null;
+
   private readonly ECHOES_STORAGE_KEY = 'chronos_discovered_echoes';
+  private readonly NARRATIVE_STORAGE_KEY = 'chronos_narrative_progress';
 
   constructor() {
     if (typeof window !== 'undefined') {
       this.loadDiscoveredEchoes();
+      this.loadNarrativeProgress();
     }
   }
 
@@ -131,6 +152,7 @@ class ChronosStore {
         );
         this.discoveredEchoes = new Set(validated);
         this.discoveredEchoesList = validated;
+        this.checkNarrativeProgression();
         this.notify();
       }
     } catch {
@@ -147,6 +169,48 @@ class ChronosStore {
       );
     } catch {
       // Safe fallback if quota exceeded
+    }
+  }
+
+  public loadNarrativeProgress(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem(this.NARRATIVE_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        if (typeof parsed.hasSeenAwakening === 'boolean') {
+          this.hasSeenAwakening = parsed.hasSeenAwakening;
+        }
+        if (Array.isArray(parsed.unlockedChapters)) {
+          const validSet = new Set<string>(ORDERED_CHAPTER_IDS);
+          const validated = parsed.unlockedChapters.filter(
+            (id: unknown): id is NarrativeChapterId => typeof id === 'string' && validSet.has(id)
+          );
+          if (validated.length > 0) {
+            this.unlockedChapters = new Set(validated);
+            this.unlockedChaptersList = validated;
+          }
+        }
+        this.notify();
+      }
+    } catch {
+      // Safe fallback
+    }
+  }
+
+  public saveNarrativeProgress(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(
+        this.NARRATIVE_STORAGE_KEY,
+        JSON.stringify({
+          hasSeenAwakening: this.hasSeenAwakening,
+          unlockedChapters: this.unlockedChaptersList,
+        })
+      );
+    } catch {
+      // Safe fallback
     }
   }
 
@@ -441,10 +505,13 @@ class ChronosStore {
       this.discoveredEchoes.add(echoId);
       this.discoveredEchoesList = Array.from(this.discoveredEchoes);
       this.saveDiscoveredEchoes();
+      this.checkNarrativeProgression();
       this.activeEchoModal = config;
+      this.openEchoMemory(echoId);
       this.notify();
     } else {
       this.activeEchoModal = config;
+      this.openEchoMemory(echoId);
       this.notify();
     }
   }
@@ -453,7 +520,63 @@ class ChronosStore {
     this.discoveredEchoes.clear();
     this.discoveredEchoesList = [];
     this.activeEchoModal = null;
+    this.activeEchoMemory = null;
     this.saveDiscoveredEchoes();
+    this.checkNarrativeProgression();
+    this.notify();
+  }
+
+  public checkNarrativeProgression(): void {
+    const chapters = new Set<NarrativeChapterId>(['ch-01-awakening']);
+
+    if (this.discoveredEchoes.has('echo-01-mark')) {
+      chapters.add('ch-02-first-memory');
+    }
+    if (this.discoveredEchoes.has('echo-02-record') || this.discoveredEchoes.has('echo-03-metal')) {
+      chapters.add('ch-03-pattern');
+    }
+    if (this.discoveredEchoes.has('echo-04-blueprint')) {
+      chapters.add('ch-04-experiment');
+    }
+    if (this.discoveredEchoes.has('echo-05-signal')) {
+      chapters.add('ch-05-revelation');
+    }
+    if (this.discoveredEchoes.size === 5) {
+      chapters.add('ch-06-warning');
+    }
+
+    this.unlockedChapters = chapters;
+    this.unlockedChaptersList = Array.from(chapters);
+    this.saveNarrativeProgress();
+  }
+
+  public openEchoMemory(echoId: TemporalEchoId): void {
+    this.activeEchoMemory = ECHO_NARRATIVE_MEMORIES[echoId] || null;
+    this.notify();
+  }
+
+  public closeEchoMemory(): void {
+    this.activeEchoMemory = null;
+    this.notify();
+  }
+
+  public triggerTransmission(
+    sender: string,
+    lines: string[],
+    chapterId?: NarrativeChapterId
+  ): void {
+    this.activeTransmission = { sender, lines, chapterId };
+    this.notify();
+  }
+
+  public dismissTransmission(): void {
+    this.activeTransmission = null;
+    this.notify();
+  }
+
+  public markAwakeningSeen(): void {
+    this.hasSeenAwakening = true;
+    this.saveNarrativeProgress();
     this.notify();
   }
 

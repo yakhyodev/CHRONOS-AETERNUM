@@ -17,6 +17,8 @@ import { chronosStore } from '@/lib/chronosStore';
 import { TimeScrubber } from './TimeScrubber';
 import { DiscoveryJournal } from './DiscoveryJournal';
 import { TemporalLensHUD } from './TemporalLensHUD';
+import { CinematicMemoryModal } from './CinematicMemoryModal';
+import { ObserverTransmissionHUD } from './ObserverTransmissionHUD';
 
 interface CityUIProps {
   onSelectSegment: (segmentId: CinematicSegmentId) => void;
@@ -248,8 +250,10 @@ export function CityUI({
       <TemporalLensHUD />
 
       {/* ================================================================== */}
-      {/* 4. DISCOVERY JOURNAL & ECHO REVEAL MODALS */}
+      {/* 4. DISCOVERY JOURNAL & CINEMATIC MEMORY MODALS */}
       {/* ================================================================== */}
+      <ObserverTransmissionHUD />
+      <CinematicMemoryModal />
       <DiscoveryJournal />
 
       {/* ================================================================== */}

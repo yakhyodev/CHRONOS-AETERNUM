@@ -18,6 +18,7 @@ import { CinematicUI } from '@/components/ui/CinematicUI';
 import { CityUI } from '@/components/ui/CityUI';
 import { AtmosphereOverlay } from '@/components/ui/AtmosphereOverlay';
 import { DebugPanel } from '@/components/ui/DebugPanel';
+import { ObserverTransmissionHUD } from '@/components/ui/ObserverTransmissionHUD';
 
 // Dynamically import Scene to eliminate SSR hydration discrepancies with WebGL Canvas
 const Scene = dynamic(
@@ -369,12 +370,15 @@ export default function ChronosPage() {
             onReturnToChamber={handleReturnToChamber}
           />
         ) : (
-          <CinematicUI
-            activationState={activationState}
-            currentShot={currentShot}
-            onActivate={handleActivate}
-            onSelectShot={handleSelectShot}
-          />
+          <>
+            <ObserverTransmissionHUD />
+            <CinematicUI
+              activationState={activationState}
+              currentShot={currentShot}
+              onActivate={handleActivate}
+              onSelectShot={handleSelectShot}
+            />
+          </>
         )}
       </div>
 

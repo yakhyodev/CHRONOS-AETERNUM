@@ -1,16 +1,24 @@
 'use client';
 
-import { useEffect, useSyncExternalStore } from 'react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
 import {
   TEMPORAL_ECHOES,
   ORDERED_ECHO_IDS,
   type TemporalEchoId,
 } from '@/types/phase07';
+import {
+  NARRATIVE_CHAPTERS,
+  ORDERED_CHAPTER_IDS,
+  type NarrativeChapterId,
+} from '@/types/phase08';
 import { chronosStore } from '@/lib/chronosStore';
 
 export function DiscoveryJournal() {
+  const [activeTab, setActiveTab] = useState<'echoes' | 'chapters'>('echoes');
+
   useEffect(() => {
     chronosStore.loadDiscoveredEchoes();
+    chronosStore.loadNarrativeProgress();
   }, []);
 
   const isJournalOpen = useSyncExternalStore(
@@ -19,172 +27,248 @@ export function DiscoveryJournal() {
     () => false
   );
 
-  const activeEchoModal = useSyncExternalStore(
-    (cb) => chronosStore.subscribe(cb),
-    () => chronosStore.activeEchoModal,
-    () => null
-  );
-
   const discoveredEchoes = useSyncExternalStore(
     (cb) => chronosStore.subscribe(cb),
     () => chronosStore.discoveredEchoesList,
     () => [] as TemporalEchoId[]
   );
 
+  const unlockedChapters = useSyncExternalStore(
+    (cb) => chronosStore.subscribe(cb),
+    () => chronosStore.unlockedChaptersList,
+    () => ['ch-01-awakening'] as NarrativeChapterId[]
+  );
+
   const discoveredCount = discoveredEchoes.length;
+  const isObservatoryUnlocked = unlockedChapters.includes('ch-05-revelation');
+  const isConvergenceReached = unlockedChapters.includes('ch-06-warning');
+
+  if (!isJournalOpen) return null;
 
   return (
-    <>
-      {/* ============================================================== */}
-      {/* 1. ECHO REVEAL CARD MODAL (Pops up upon collecting an echo)     */}
-      {/* ============================================================== */}
-      {activeEchoModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md pointer-events-auto">
-          <div className="relative w-full max-w-lg rounded-2xl border border-[#D4AF37]/50 bg-[#08090D]/95 p-6 sm:p-8 shadow-[0_0_50px_rgba(212,175,55,0.3)]">
-            {/* Header Badge */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <div className="flex items-center gap-2">
-                <span className="flex h-2.5 w-2.5 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500" />
-                </span>
-                <span className="font-mono text-[10px] tracking-[0.25em] text-cyan-400 uppercase font-bold">
-                  TEMPORAL ECHO REVEALED
-                </span>
-              </div>
-              <span className="rounded border border-[#D4AF37]/40 bg-[#D4AF37]/10 px-2 py-0.5 font-mono text-[9px] font-bold text-[#FFE8B5]">
-                {activeEchoModal.yearLabel}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md pointer-events-auto animate-fade-in">
+      <div className="relative w-full max-w-3xl max-h-[90vh] flex flex-col rounded-2xl border border-[#D4AF37]/40 bg-[#07090E]/95 p-5 sm:p-7 shadow-[0_0_60px_rgba(212,175,55,0.2)]">
+        {/* Header Telemetry */}
+        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500" />
+              </span>
+              <span className="font-mono text-[10px] tracking-[0.25em] text-cyan-400 font-bold uppercase">
+                OBSERVER 07 // ARCHIVAL DOSSIER
               </span>
             </div>
-
-            {/* Echo Info */}
-            <div className="mt-5 space-y-3">
-              <span className="font-mono text-[10px] tracking-widest text-zinc-400 uppercase">
-                [{activeEchoModal.number}] &bull; {activeEchoModal.districtLabel}
-              </span>
-              <h2 className="font-cinzel text-xl sm:text-2xl font-bold tracking-[0.2em] text-[#FFE8B5]">
-                {activeEchoModal.name}
-              </h2>
-              <div className="rounded-lg border border-amber-900/40 bg-amber-950/20 px-3.5 py-2">
-                <span className="font-mono text-[11px] font-semibold tracking-wider text-[#EAB774]">
-                  ARTIFACT: {activeEchoModal.artifactName}
-                </span>
-              </div>
-              <p className="mt-2 font-mono text-xs sm:text-[13px] leading-relaxed text-zinc-300 border-l-2 border-[#D4AF37]/60 pl-3.5 py-1">
-                "{activeEchoModal.clue}"
-              </p>
-            </div>
-
-            {/* Actions */}
-            <div className="mt-7 flex items-center justify-end gap-3 pt-4 border-t border-white/10">
-              <button
-                type="button"
-                onClick={() => chronosStore.setActiveEchoModal(null)}
-                className="rounded-full border border-white/20 bg-white/5 px-5 py-2 font-cinzel text-xs font-semibold tracking-[0.2em] text-zinc-300 transition hover:bg-white/10 hover:text-white"
-              >
-                DISMISS
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  chronosStore.setActiveEchoModal(null);
-                  chronosStore.setIsJournalOpen(true);
-                }}
-                className="rounded-full border border-[#D4AF37] bg-[#D4AF37]/20 px-5 py-2 font-cinzel text-xs font-semibold tracking-[0.2em] text-[#FFE8B5] transition hover:bg-[#D4AF37]/35 shadow-[0_0_15px_rgba(212,175,55,0.4)]"
-              >
-                OPEN JOURNAL ({discoveredCount}/5)
-              </button>
-            </div>
+            <h2 className="mt-1 font-cinzel text-lg sm:text-2xl font-bold tracking-[0.2em] text-[#FFE8B5]">
+              THE CITY REMEMBERS
+            </h2>
           </div>
+
+          <button
+            type="button"
+            onClick={() => chronosStore.setIsJournalOpen(false)}
+            className="h-8 w-8 rounded-full border border-white/20 flex items-center justify-center text-zinc-400 hover:text-white hover:border-white transition"
+          >
+            ✕
+          </button>
         </div>
-      )}
 
-      {/* ============================================================== */}
-      {/* 2. DISCOVERY JOURNAL MODAL (Inspect all collected clues)        */}
-      {/* ============================================================== */}
-      {isJournalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md pointer-events-auto">
-          <div className="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border border-white/15 bg-[#08090D]/95 p-6 sm:p-7 shadow-2xl">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <div>
-                <h2 className="font-cinzel text-lg sm:text-xl font-bold tracking-[0.25em] text-[#FFE8B5]">
-                  TEMPORAL ECHO ARCHIVES
-                </h2>
-                <span className="font-mono text-[10px] tracking-widest text-[#D4AF37] uppercase">
-                  DISCOVERED CLUES: {discoveredCount} / 5
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => chronosStore.setIsJournalOpen(false)}
-                className="h-8 w-8 rounded-full border border-white/20 flex items-center justify-center text-zinc-400 hover:text-white hover:border-white transition"
-              >
-                ✕
-              </button>
-            </div>
+        {/* Tab Navigation */}
+        <div className="mt-4 flex items-center justify-between border-b border-white/10 pb-2">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab('echoes')}
+              className={`rounded-lg px-3.5 py-1.5 font-mono text-xs font-bold tracking-wider transition ${
+                activeTab === 'echoes'
+                  ? 'bg-[#D4AF37]/20 border border-[#D4AF37] text-[#FFE8B5]'
+                  : 'bg-white/5 border border-white/10 text-zinc-400 hover:text-white'
+              }`}
+            >
+              TEMPORAL ECHOES ({discoveredCount}/5)
+            </button>
+            <button
+              onClick={() => setActiveTab('chapters')}
+              className={`rounded-lg px-3.5 py-1.5 font-mono text-xs font-bold tracking-wider transition ${
+                activeTab === 'chapters'
+                  ? 'bg-cyan-500/20 border border-cyan-400 text-cyan-200'
+                  : 'bg-white/5 border border-white/10 text-zinc-400 hover:text-white'
+              }`}
+            >
+              NARRATIVE LOG ({unlockedChapters.length}/6)
+            </button>
+          </div>
 
-            {/* Echoes List */}
-            <div className="mt-5 space-y-3.5 overflow-y-auto pr-1">
-              {ORDERED_ECHO_IDS.map((echoId) => {
-                const config = TEMPORAL_ECHOES[echoId];
-                const isFound = discoveredEchoes.includes(echoId);
+          <span className="hidden sm:inline font-mono text-[10px] text-zinc-400">
+            OBSERVER ID: <span className="text-white font-bold">07</span>
+          </span>
+        </div>
 
-                return (
-                  <div
-                    key={echoId}
-                    className={`rounded-xl border p-4 transition-all duration-200 ${
-                      isFound
-                        ? 'border-[#D4AF37]/40 bg-[#0F1117] shadow-[0_0_15px_rgba(212,175,55,0.1)]'
-                        : 'border-white/5 bg-zinc-950/40 opacity-50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <span className="font-mono text-xs font-bold text-[#D4AF37]">
-                          [{config.number}]
-                        </span>
-                        <h3 className="font-cinzel text-xs sm:text-sm font-semibold tracking-wider text-[#F5F3ED]">
-                          {isFound ? config.name : 'UNRESOLVED CHRONAL RESONANCE'}
-                        </h3>
-                      </div>
-                      <span className="font-mono text-[9px] tracking-wider text-zinc-400">
-                        {config.districtLabel} &bull; {config.yearLabel}
+        {/* ============================================================== */}
+        {/* TAB 1: TEMPORAL ECHOES LIST                                   */}
+        {/* ============================================================== */}
+        {activeTab === 'echoes' && (
+          <div className="mt-4 space-y-3 overflow-y-auto pr-1">
+            {ORDERED_ECHO_IDS.map((echoId) => {
+              const config = TEMPORAL_ECHOES[echoId];
+              const isFound = discoveredEchoes.includes(echoId);
+
+              return (
+                <div
+                  key={echoId}
+                  className={`rounded-xl border p-4 transition-all duration-200 ${
+                    isFound
+                      ? 'border-[#D4AF37]/40 bg-[#0C0F17] shadow-[0_0_15px_rgba(212,175,55,0.08)]'
+                      : 'border-white/5 bg-zinc-950/40 opacity-55'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <span className="font-mono text-xs font-bold text-[#D4AF37]">
+                        [{config.number}]
                       </span>
+                      <h3 className="font-cinzel text-xs sm:text-sm font-semibold tracking-wider text-[#F5F3ED]">
+                        {isFound ? config.name : 'UNRESOLVED CHRONAL RESONANCE'}
+                      </h3>
                     </div>
+                    <span className="font-mono text-[9px] tracking-wider text-zinc-400">
+                      {config.districtLabel} &bull; {config.yearLabel}
+                    </span>
+                  </div>
 
-                    {isFound ? (
-                      <div className="mt-2.5 space-y-1.5">
-                        <span className="font-mono text-[10px] text-[#EAB774] block">
+                  {isFound ? (
+                    <div className="mt-2.5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[10px] text-[#EAB774]">
                           ARTIFACT: {config.artifactName}
                         </span>
-                        <p className="font-mono text-[11px] leading-relaxed text-zinc-300">
-                          {config.clue}
-                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            chronosStore.openEchoMemory(echoId);
+                            chronosStore.setActiveEchoModal(config);
+                          }}
+                          className="rounded border border-cyan-400/40 bg-cyan-950/30 px-2 py-0.5 font-mono text-[9px] font-bold text-cyan-300 transition hover:bg-cyan-500/20"
+                        >
+                          REPLAY MEMORY &rarr;
+                        </button>
                       </div>
-                    ) : (
-                      <p className="mt-2 font-mono text-[10px] text-zinc-600 italic">
-                        Explore {config.districtLabel} around {config.yearLabel} to discover this temporal echo.
+                      <p className="font-mono text-[11px] leading-relaxed text-zinc-300 border-l-2 border-[#D4AF37]/50 pl-2.5">
+                        {config.clue}
                       </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Footer */}
-            <div className="mt-5 pt-4 border-t border-white/10 flex justify-end">
-              <button
-                type="button"
-                onClick={() => chronosStore.setIsJournalOpen(false)}
-                className="rounded-full border border-white/20 bg-white/5 px-6 py-2 font-cinzel text-xs font-semibold tracking-[0.2em] text-[#FFE8B5] hover:bg-white/10"
-              >
-                CLOSE ARCHIVE
-              </button>
-            </div>
+                    </div>
+                  ) : (
+                    <p className="mt-2 font-mono text-[10px] text-zinc-600 italic">
+                      Explore {config.districtLabel} in {config.yearLabel} ({config.primaryEra}) to discover this temporal echo.
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* TAB 2: NARRATIVE CHAPTERS                                     */}
+        {/* ============================================================== */}
+        {activeTab === 'chapters' && (
+          <div className="mt-4 space-y-3 overflow-y-auto pr-1">
+            {/* The Special Observatory Revelation Banner if Chapter 5 unlocked */}
+            {isObservatoryUnlocked && (
+              <div className="rounded-xl border border-cyan-400/60 bg-cyan-950/20 p-4 shadow-[0_0_25px_rgba(0,240,255,0.15)] text-left">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
+                  <span className="font-mono text-[10px] tracking-[0.2em] font-bold text-cyan-300 uppercase">
+                    CENTRAL CHRONOS PARADOX REVEALED
+                  </span>
+                </div>
+                <p className="mt-1.5 font-cinzel text-xs sm:text-sm font-semibold text-[#FFE8B5]">
+                  "THE CORE DID NOT ORIGINATE IN THE PAST. IT WAS SENT BACKWARD FROM 2200 CE TO WARN AETERNUM BEFORE THE COLLAPSE."
+                </p>
+              </div>
+            )}
+
+            {/* The Final Warning Banner if all 5 Echoes unlocked */}
+            {isConvergenceReached && (
+              <div className="rounded-xl border border-[#D4AF37]/70 bg-[#D4AF37]/10 p-4 shadow-[0_0_25px_rgba(212,175,55,0.2)] text-left">
+                <span className="font-mono text-[10px] tracking-[0.2em] font-bold text-[#FFE8B5] uppercase">
+                  CHAPTER 06 // CONVERGENCE REACHED
+                </span>
+                <p className="mt-1 font-cinzel text-sm sm:text-base font-bold text-[#FFE8B5]">
+                  "THE PAST REMEMBERS. THE FUTURE IS WAITING."
+                </p>
+                <p className="mt-0.5 font-mono text-[10px] text-zinc-300">
+                  Five chronological anomalies reconciled. The boundary between historical eras is ready for alignment.
+                </p>
+              </div>
+            )}
+
+            {ORDERED_CHAPTER_IDS.map((chapterId) => {
+              const chapter = NARRATIVE_CHAPTERS[chapterId];
+              const isUnlocked = unlockedChapters.includes(chapterId);
+
+              return (
+                <div
+                  key={chapterId}
+                  className={`rounded-xl border p-4 transition-all duration-200 ${
+                    isUnlocked
+                      ? 'border-cyan-500/30 bg-[#0A0D14]'
+                      : 'border-white/5 bg-zinc-950/40 opacity-45'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[10px] font-bold text-cyan-400">
+                        {chapter.number}
+                      </span>
+                      <h3 className="font-cinzel text-xs sm:text-sm font-semibold tracking-wider text-[#F5F3ED]">
+                        {isUnlocked ? chapter.title : 'ENCRYPTED TIMELINE NODE'}
+                      </h3>
+                    </div>
+                    <span className="font-mono text-[9px] text-zinc-400">
+                      {chapter.districtLabel} &bull; {chapter.yearLabel}
+                    </span>
+                  </div>
+
+                  {isUnlocked ? (
+                    <div className="mt-2.5 space-y-2">
+                      <p className="font-serif text-xs sm:text-sm leading-relaxed text-zinc-300 italic">
+                        {chapter.synopsis}
+                      </p>
+                      <div className="rounded border border-cyan-400/20 bg-black/40 p-2.5 font-mono text-[10px] sm:text-[11px] text-cyan-200 space-y-1">
+                        {chapter.transmissionLines.map((line, idx) => (
+                          <p key={`chap-line-${idx}`}>{line}</p>
+                        ))}
+                      </div>
+                      <p className="font-mono text-[10px] text-[#EAB774]">
+                        INSIGHT: {chapter.revelationText}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="mt-2 font-mono text-[10px] text-zinc-600 italic">
+                      Collect the corresponding temporal echo to decode this historical chapter.
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+          <span className="font-mono text-[10px] text-zinc-400">
+            STATUS: REAL-TIME ARCHIVE SYNCHRONIZED
+          </span>
+          <button
+            type="button"
+            onClick={() => chronosStore.setIsJournalOpen(false)}
+            className="rounded-full border border-white/20 bg-white/5 px-6 py-2 font-cinzel text-xs font-semibold tracking-[0.2em] text-[#FFE8B5] hover:bg-white/10"
+          >
+            CLOSE ARCHIVE
+          </button>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   );
 }

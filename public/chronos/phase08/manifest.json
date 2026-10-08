@@ -1,0 +1,26 @@
+{
+  "project": "CHRONOS AETERNUM",
+  "phase": "08",
+  "name": "Observer 07 Narrative & Temporal Echo Story",
+  "visualsAreReferenceOnly": true,
+  "approvedEras": [
+    "1200 BCE",
+    "1450 CE",
+    "1890 CE",
+    "2026 CE",
+    "2200 CE"
+  ],
+  "assets": [
+    "01-observer07-awakening.jpg",
+    "02-temporal-fractures.jpg",
+    "03-observatory-revelation.jpg",
+    "04-hidden-memory-echo.jpg",
+    "05-recurring-symbols.jpg",
+    "06-observatory-and-core.jpg",
+    "07-cinematic-clue-reveal.jpg",
+    "08-minimal-story-hud.jpg",
+    "09-plaza-time-anomaly.jpg"
+  ],
+  "board": "00-phase08-story-art-direction.jpg",
+  "deferred": "Choice endings and full Paradox finale belong to Phase 09"
+}
