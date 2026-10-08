@@ -57,7 +57,7 @@ export function TemporalLensGhost() {
     <group ref={ghostRef} name="TemporalLens_GhostOverlay">
       {/* 1. LENS INSPECTION FOR PLAZA TOWER */}
       {lens.landmarkId === 'plaza-tower' && (
-        <group position={[0, 0, -125]}>
+        <group position={[0, 0, -124]}>
           {/* Holographic chronal focus ring */}
           <mesh ref={ringRef} position={[0, 16, 0]} material={ringMat}>
             <torusGeometry args={[14, 0.4, 8, 32]} />
@@ -170,7 +170,7 @@ export function TemporalLensGhost() {
 
       {/* 3. LENS INSPECTION FOR THE OBSERVATORY */}
       {lens.landmarkId === 'observatory-dome' && (
-        <group position={[0, 32, -345]}>
+        <group position={[40, 32, -230]}>
           <mesh ref={ringRef} position={[0, 8, 0]} material={ringMat}>
             <torusGeometry args={[16, 0.5, 8, 32]} />
           </mesh>

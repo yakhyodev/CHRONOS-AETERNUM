@@ -24,7 +24,7 @@ import type {
   TemporalEchoId,
   TemporalEchoConfig,
 } from '../types/phase07';
-import { TEMPORAL_ECHOES } from '../types/phase07';
+import { TEMPORAL_ECHOES, ORDERED_ECHO_IDS } from '../types/phase07';
 
 export type WorldMode =
   | 'chamber'
@@ -109,6 +109,46 @@ class ChronosStore {
   public activeEchoModal: TemporalEchoConfig | null = null;
   public isJournalOpen = false;
   public lastStoryProgress = 0;
+
+  private readonly ECHOES_STORAGE_KEY = 'chronos_discovered_echoes';
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      this.loadDiscoveredEchoes();
+    }
+  }
+
+  public loadDiscoveredEchoes(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem(this.ECHOES_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const validSet = new Set<string>(ORDERED_ECHO_IDS);
+        const validated = parsed.filter(
+          (id): id is TemporalEchoId => typeof id === 'string' && validSet.has(id)
+        );
+        this.discoveredEchoes = new Set(validated);
+        this.discoveredEchoesList = validated;
+        this.notify();
+      }
+    } catch {
+      // Safe fallback if localStorage is disabled or corrupt
+    }
+  }
+
+  public saveDiscoveredEchoes(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(
+        this.ECHOES_STORAGE_KEY,
+        JSON.stringify(this.discoveredEchoesList)
+      );
+    } catch {
+      // Safe fallback if quota exceeded
+    }
+  }
 
   private listeners = new Set<Listener>();
 
@@ -319,6 +359,7 @@ class ChronosStore {
         this.lastStoryProgress = this.journeyProgress;
         this.cameraController = 'exploring';
       } else {
+        this.journeyProgress = this.lastStoryProgress;
         this.cameraController = 'cinematic';
         this.closeTemporalLens();
       }
@@ -389,13 +430,21 @@ class ChronosStore {
   }
 
   public discoverEcho(echoId: TemporalEchoId): void {
+    const config = TEMPORAL_ECHOES[echoId];
+    if (!config) return;
+
     if (!this.discoveredEchoes.has(echoId)) {
+      // Requirement 1: Temporal Echoes must only be discoverable in their configured primaryEra
+      if (this.activeEra !== config.primaryEra) {
+        return;
+      }
       this.discoveredEchoes.add(echoId);
       this.discoveredEchoesList = Array.from(this.discoveredEchoes);
-      this.activeEchoModal = TEMPORAL_ECHOES[echoId] || null;
+      this.saveDiscoveredEchoes();
+      this.activeEchoModal = config;
       this.notify();
     } else {
-      this.activeEchoModal = TEMPORAL_ECHOES[echoId] || null;
+      this.activeEchoModal = config;
       this.notify();
     }
   }
@@ -404,6 +453,7 @@ class ChronosStore {
     this.discoveredEchoes.clear();
     this.discoveredEchoesList = [];
     this.activeEchoModal = null;
+    this.saveDiscoveredEchoes();
     this.notify();
   }
 

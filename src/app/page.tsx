@@ -330,9 +330,11 @@ export default function ChronosPage() {
         const targetShot = chronosStore.getShotFromProgress(progress);
         chronosStore.setCurrentShot(targetShot);
       } else if (worldMode === 'city') {
-        chronosStore.setJourneyProgress(progress);
-        const targetSegment = chronosStore.getSegmentFromProgress(progress);
-        chronosStore.setCurrentSegment(targetSegment.id);
+        if (chronosStore.experienceMode !== 'explore') {
+          chronosStore.setJourneyProgress(progress);
+          const targetSegment = chronosStore.getSegmentFromProgress(progress);
+          chronosStore.setCurrentSegment(targetSegment.id);
+        }
       }
     };
 

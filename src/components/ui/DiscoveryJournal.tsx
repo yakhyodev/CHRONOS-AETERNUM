@@ -1,6 +1,6 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import {
   TEMPORAL_ECHOES,
   ORDERED_ECHO_IDS,
@@ -9,6 +9,10 @@ import {
 import { chronosStore } from '@/lib/chronosStore';
 
 export function DiscoveryJournal() {
+  useEffect(() => {
+    chronosStore.loadDiscoveredEchoes();
+  }, []);
+
   const isJournalOpen = useSyncExternalStore(
     (cb) => chronosStore.subscribe(cb),
     () => chronosStore.isJournalOpen,

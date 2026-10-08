@@ -73,8 +73,8 @@ export const DISTRICT_EXPLORE_ANCHORS: Record<ExploreDistrictId, DistrictExplore
     name: 'Industrial Quarter',
     districtLabel: 'INDUSTRIAL QUARTER',
     tagline: 'SOUTHWESTERN CANAL FOUNDRIES & MACHINE LOFTS',
-    cameraPosition: [-82, 24, 78],
-    targetPosition: [-120, 10, 40],
+    cameraPosition: [-48, 22, -40],
+    targetPosition: [-70, 8, -75],
     minDistance: 25,
     maxDistance: 115,
     minPolarAngle: Math.PI / 6,
@@ -85,8 +85,8 @@ export const DISTRICT_EXPLORE_ANCHORS: Record<ExploreDistrictId, DistrictExplore
     name: 'The Observatory',
     districtLabel: 'THE OBSERVATORY',
     tagline: 'NORTHERN CLIFF CELESTIAL DOME & HORIZON GAZE',
-    cameraPosition: [0, 52, -275],
-    targetPosition: [0, 36, -345],
+    cameraPosition: [40, 52, -170],
+    targetPosition: [40, 38, -230],
     minDistance: 35,
     maxDistance: 140,
     minPolarAngle: Math.PI / 8,
@@ -110,7 +110,7 @@ export const TEMPORAL_LENS_LANDMARKS: Record<TemporalLensLandmarkId, TemporalLen
     name: 'Monumental Timepiece',
     district: 'plaza',
     description: 'Inspect alternate temporal incarnations of the Central Chronos Tower.',
-    center: [0, 14, -125],
+    center: [0, 14, -124],
   },
   'river-bridge': {
     id: 'river-bridge',
@@ -124,7 +124,7 @@ export const TEMPORAL_LENS_LANDMARKS: Record<TemporalLensLandmarkId, TemporalLen
     name: 'Northern Observatory',
     district: 'observatory',
     description: 'Preview celestial instruments from ancient megaliths to tachyon arrays.',
-    center: [0, 36, -345],
+    center: [40, 38, -230],
   },
 };
 
@@ -199,7 +199,7 @@ export const TEMPORAL_ECHOES: Record<TemporalEchoId, TemporalEchoConfig> = {
     yearLabel: '2026 CE',
     artifactName: 'Declassified Harmonic Schematic',
     clue: 'Archived municipal municipal records prove early mechanical engineers accidentally stimulated localized temporal ripples in the machine district as early as 1890.',
-    position: [-108, 4.0, 44],
+    position: [-68, 2.5, -72],
     color: '#38BDF8',
   },
   'echo-05-signal': {
@@ -212,7 +212,7 @@ export const TEMPORAL_ECHOES: Record<TemporalEchoId, TemporalEchoConfig> = {
     yearLabel: '2200 CE',
     artifactName: 'Tachyon Harmonic Vector',
     clue: 'Decoded astronomical coordinates broadcasting along an inverted time carrier wave. All five historical anomalies converge on a single coordinate in spacetime.',
-    position: [0, 34.2, -322],
+    position: [40, 34.2, -220],
     color: '#00F0FF',
   },
 };

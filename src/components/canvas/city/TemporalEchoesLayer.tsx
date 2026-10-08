@@ -1,13 +1,15 @@
 'use client';
 
-import { useRef, useMemo, useEffect, useState } from 'react';
+import { useRef, useMemo, useEffect, useState, useSyncExternalStore } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import {
   TEMPORAL_ECHOES,
   ORDERED_ECHO_IDS,
   type TemporalEchoConfig,
+  type TemporalEchoId,
 } from '@/types/phase07';
+import type { HistoricalEraId } from '@/types/phase05';
 import { chronosStore } from '@/lib/chronosStore';
 
 function SingleEchoMesh({
@@ -132,11 +134,31 @@ function SingleEchoMesh({
 }
 
 export function TemporalEchoesLayer() {
-  const discoveredSet = chronosStore.discoveredEchoes;
+  const activeEra = useSyncExternalStore(
+    (cb) => chronosStore.subscribe(cb),
+    () => chronosStore.activeEra,
+    () => 'the-present' as HistoricalEraId
+  );
+
+  const discoveredList = useSyncExternalStore(
+    (cb) => chronosStore.subscribe(cb),
+    () => chronosStore.discoveredEchoesList,
+    () => [] as TemporalEchoId[]
+  );
+
+  const discoveredSet = useMemo(() => new Set(discoveredList), [discoveredList]);
+
+  // Requirement 1: Temporal Echoes must only be discoverable in their configured primaryEra
+  const activeEraEchoes = useMemo(() => {
+    return ORDERED_ECHO_IDS.filter((echoId) => {
+      const config = TEMPORAL_ECHOES[echoId];
+      return config && config.primaryEra === activeEra;
+    });
+  }, [activeEra]);
 
   return (
     <group name="TemporalEchoes_Layer">
-      {ORDERED_ECHO_IDS.map((echoId) => {
+      {activeEraEchoes.map((echoId) => {
         const config = TEMPORAL_ECHOES[echoId];
         const isDiscovered = discoveredSet.has(echoId);
 

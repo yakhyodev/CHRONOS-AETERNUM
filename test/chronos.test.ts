@@ -551,28 +551,78 @@ describe('CHRONOS — Aeternum State & Timeline Engine', () => {
       });
     });
 
-    it('tracks discovery progress and opens clue modal', () => {
+    it('enforces that Temporal Echoes are only discoverable in their configured primaryEra', () => {
       chronosStore.clearDiscoveredEchoes();
+      chronosStore.setActiveEra('the-present');
       expect(chronosStore.getDiscoveredEchoesCount()).toBe(0);
 
-      // Discover Echo 01
+      // Attempting to discover Echo 01 (primaryEra: the-origin) while in the-present must fail
+      chronosStore.discoverEcho('echo-01-mark');
+      expect(chronosStore.getDiscoveredEchoesCount()).toBe(0);
+
+      // Switch to the-origin (1200 BCE)
+      chronosStore.setActiveEra('the-origin');
       chronosStore.discoverEcho('echo-01-mark');
       expect(chronosStore.getDiscoveredEchoesCount()).toBe(1);
       expect(chronosStore.activeEchoModal?.id).toBe('echo-01-mark');
 
-      // Re-inspecting should not duplicate
-      chronosStore.discoverEcho('echo-01-mark');
+      // Changing era must preserve already collected artifacts
+      chronosStore.setActiveEra('the-kingdom');
       expect(chronosStore.getDiscoveredEchoesCount()).toBe(1);
+      expect(chronosStore.discoveredEchoes.has('echo-01-mark')).toBe(true);
 
-      // Discover Echo 02
+      // Discover Echo 02 in the-kingdom
       chronosStore.discoverEcho('echo-02-record');
       expect(chronosStore.getDiscoveredEchoesCount()).toBe(2);
 
-      // Journal open / close
-      chronosStore.setIsJournalOpen(true);
-      expect(chronosStore.isJournalOpen).toBe(true);
-      chronosStore.setIsJournalOpen(false);
-      expect(chronosStore.isJournalOpen).toBe(false);
+      // Re-inspecting collected artifact in any era still opens the clue modal
+      chronosStore.setActiveEra('the-next-age');
+      chronosStore.discoverEcho('echo-01-mark');
+      expect(chronosStore.activeEchoModal?.id).toBe('echo-01-mark');
+      expect(chronosStore.getDiscoveredEchoesCount()).toBe(2);
+    });
+
+    it('validates coordinate consistency between anchors, landmarks, and echo positions', async () => {
+      const { DISTRICT_EXPLORE_ANCHORS, TEMPORAL_LENS_LANDMARKS, TEMPORAL_ECHOES } = await import('../src/types/phase07');
+
+      // Observatory consistency
+      expect(DISTRICT_EXPLORE_ANCHORS.observatory.targetPosition[0]).toBe(40);
+      expect(DISTRICT_EXPLORE_ANCHORS.observatory.targetPosition[2]).toBe(-230);
+      expect(TEMPORAL_LENS_LANDMARKS['observatory-dome'].center[0]).toBe(40);
+      expect(TEMPORAL_LENS_LANDMARKS['observatory-dome'].center[2]).toBe(-230);
+      expect(TEMPORAL_ECHOES['echo-05-signal'].position[0]).toBe(40);
+      expect(TEMPORAL_ECHOES['echo-05-signal'].position[2]).toBe(-220);
+
+      // Industry consistency
+      expect(DISTRICT_EXPLORE_ANCHORS.industry.targetPosition[0]).toBe(-70);
+      expect(DISTRICT_EXPLORE_ANCHORS.industry.targetPosition[2]).toBe(-75);
+      expect(TEMPORAL_ECHOES['echo-04-blueprint'].position[0]).toBe(-68);
+      expect(TEMPORAL_ECHOES['echo-04-blueprint'].position[2]).toBe(-72);
+
+      // Plaza consistency
+      expect(TEMPORAL_LENS_LANDMARKS['plaza-tower'].center[0]).toBe(0);
+      expect(TEMPORAL_LENS_LANDMARKS['plaza-tower'].center[2]).toBe(-124);
+      expect(TEMPORAL_ECHOES['echo-01-mark'].position[0]).toBe(0);
+      expect(TEMPORAL_ECHOES['echo-01-mark'].position[2]).toBe(-106);
+    });
+
+    it('verifies historical era and story progress remain stable when toggling explore mode', () => {
+      chronosStore.setActiveEra('the-machine');
+      chronosStore.setJourneyProgress(0.68);
+      expect(chronosStore.activeEra).toBe('the-machine');
+      expect(chronosStore.journeyProgress).toBe(0.68);
+
+      // Enter explore mode
+      chronosStore.setExperienceMode('explore');
+      expect(chronosStore.experienceMode).toBe('explore');
+      // Era must remain stable
+      expect(chronosStore.activeEra).toBe('the-machine');
+
+      // Return to story mode
+      chronosStore.setExperienceMode('story');
+      expect(chronosStore.experienceMode).toBe('story');
+      expect(chronosStore.activeEra).toBe('the-machine');
+      expect(chronosStore.journeyProgress).toBe(0.68);
     });
   });
 });

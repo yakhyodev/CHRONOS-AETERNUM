@@ -1,10 +1,12 @@
 'use client';
 
-import { useMemo, useEffect, useSyncExternalStore } from 'react';
+import { useMemo, useEffect, useRef, useSyncExternalStore } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { EraLandmark } from './EraLandmark';
 import { chronosStore } from '@/lib/chronosStore';
 import { TEMPORAL_ERAS } from '@/types/phase05';
+import { getTemporalMorphState } from '@/types/phase06';
 import type { HistoricalEraId } from '@/types/phase03';
 
 export function ChronosPlaza() {
@@ -106,6 +108,47 @@ export function ChronosPlaza() {
     return pos;
   }, []);
 
+  const fountainRef = useRef<THREE.Group>(null);
+  const treesGroupRef = useRef<THREE.Group>(null);
+
+  // Smooth Time Morph: continuous interpolation across all five eras
+  useFrame(() => {
+    const pos = chronosStore.timelinePosition;
+    const { eraA, eraB, blendFactor } = getTemporalMorphState(pos);
+
+    // 1. Fountain smooth time morph: absent in 1200 BCE, scales in towards 1450 CE
+    if (fountainRef.current) {
+      if (eraA === 'the-origin' && eraB === 'the-kingdom') {
+        const s = Math.max(0, Math.min(1, blendFactor));
+        fountainRef.current.visible = s > 0.02;
+        fountainRef.current.scale.set(s, s, s);
+      } else if (eraA === 'the-origin') {
+        fountainRef.current.visible = false;
+      } else {
+        fountainRef.current.visible = true;
+        fountainRef.current.scale.set(1, 1, 1);
+      }
+    }
+
+    // 2. Cypress trees smooth time morph: shrinks in 1890 CE industrial smog era, returns towards 2026 CE
+    if (treesGroupRef.current) {
+      if (eraA === 'the-kingdom' && eraB === 'the-machine') {
+        const s = Math.max(0.05, 1.0 - blendFactor * 0.95);
+        treesGroupRef.current.visible = s > 0.05;
+        treesGroupRef.current.scale.set(s, s, s);
+      } else if (eraA === 'the-machine' && eraB === 'the-present') {
+        const s = Math.min(1.0, 0.05 + blendFactor * 0.95);
+        treesGroupRef.current.visible = s > 0.05;
+        treesGroupRef.current.scale.set(s, s, s);
+      } else if (eraA === 'the-machine') {
+        treesGroupRef.current.visible = false;
+      } else {
+        treesGroupRef.current.visible = true;
+        treesGroupRef.current.scale.set(1, 1, 1);
+      }
+    }
+  });
+
   return (
     <group name="ChronosPlaza">
       {/* ================================================================== */}
@@ -132,20 +175,18 @@ export function ChronosPlaza() {
         <ringGeometry args={[17.2, 17.6, 48]} />
       </mesh>
 
-      {/* Central Plaza Bronze Fountain Monument (Hidden in 1200 BCE, adapted in others) */}
-      {activeEra !== 'the-origin' && (
-        <group position={[0, 0.4, -106]}>
-          <mesh position={[0, 0.6, 0]} receiveShadow castShadow material={sandstoneMat}>
-            <cylinderGeometry args={[3.8, 4.2, 1.2, 24]} />
-          </mesh>
-          <mesh position={[0, 2.2, 0]} receiveShadow castShadow material={darkStoneMat}>
-            <cylinderGeometry args={[1.2, 1.5, 2.0, 16]} />
-          </mesh>
-          <mesh position={[0, 4.0, 0]} castShadow material={goldOrnamentMat}>
-            <sphereGeometry args={[0.9, 16, 16]} />
-          </mesh>
-        </group>
-      )}
+      {/* Central Plaza Bronze Fountain Monument (Smoothly interpolated during time morph) */}
+      <group ref={fountainRef} position={[0, 0.4, -106]}>
+        <mesh position={[0, 0.6, 0]} receiveShadow castShadow material={sandstoneMat}>
+          <cylinderGeometry args={[3.8, 4.2, 1.2, 24]} />
+        </mesh>
+        <mesh position={[0, 2.2, 0]} receiveShadow castShadow material={darkStoneMat}>
+          <cylinderGeometry args={[1.2, 1.5, 2.0, 16]} />
+        </mesh>
+        <mesh position={[0, 4.0, 0]} castShadow material={goldOrnamentMat}>
+          <sphereGeometry args={[0.9, 16, 16]} />
+        </mesh>
+      </group>
 
       {/* ================================================================== */}
       {/* 2. THE ERA-SPECIFIC MONUMENTAL LANDMARK */}
@@ -197,9 +238,9 @@ export function ChronosPlaza() {
         </group>
       ))}
 
-      {/* Trees (shown for eras with vegetation) */}
-      {activeEra !== 'the-machine' &&
-        treePositions.map(([x, y, z], idx) => (
+      {/* Trees (smoothly morphing with vegetation health across eras) */}
+      <group ref={treesGroupRef}>
+        {treePositions.map(([x, y, z], idx) => (
           <group key={`plaza-tree-${idx}`} position={[x, y + 0.3, z]}>
             <mesh position={[0, 1.2, 0]} material={darkStoneMat}>
               <cylinderGeometry args={[0.2, 0.3, 2.4, 8]} />
@@ -209,6 +250,7 @@ export function ChronosPlaza() {
             </mesh>
           </group>
         ))}
+      </group>
     </group>
   );
 }
