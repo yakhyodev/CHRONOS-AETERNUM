@@ -129,6 +129,14 @@ export function Scene({
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
 
+  const handleContextLost = useCallback(() => {
+    setWebglSupported(false);
+  }, []);
+
+  const handleContextRestored = useCallback(() => {
+    setWebglSupported(true);
+  }, []);
+
   if (!mounted) {
     return (
       <div className={`w-full h-full flex items-center justify-center bg-[#08090D] ${className}`}>
@@ -155,14 +163,6 @@ export function Scene({
     worldMode === 'transitioning_to_chamber';
 
   const eraConfig = TEMPORAL_ERAS[activeEra] || TEMPORAL_ERAS['the-present'];
-
-  const handleContextLost = useCallback(() => {
-    setWebglSupported(false);
-  }, []);
-
-  const handleContextRestored = useCallback(() => {
-    setWebglSupported(true);
-  }, []);
 
   return (
     <div className={`relative w-full h-full ${className}`}>
