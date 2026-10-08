@@ -7,6 +7,7 @@ import {
   CINEMATIC_SEGMENTS,
 } from '@/types/phase04';
 import { TEMPORAL_ERAS, type HistoricalEraId } from '@/types/phase05';
+import { getTemporalMorphState } from '@/types/phase06';
 import { chronosStore } from '@/lib/chronosStore';
 import { TimeScrubber } from './TimeScrubber';
 
@@ -32,11 +33,19 @@ export function CityUI({
     () => 'the-present' as HistoricalEraId
   );
 
+  const timelinePosition = useSyncExternalStore(
+    (cb) => chronosStore.subscribe(cb),
+    () => chronosStore.timelinePosition,
+    () => 0.75
+  );
+
   const activeSegmentConfig =
     CINEMATIC_SEGMENTS.find((s) => s.id === currentSegment) ||
     CINEMATIC_SEGMENTS[0];
 
   const eraConfig = TEMPORAL_ERAS[activeEra] || TEMPORAL_ERAS['the-present'];
+  const morphState = getTemporalMorphState(timelinePosition);
+  const isMorphing = morphState.blendFactor > 0.02 && morphState.blendFactor < 0.98;
 
   // Key navigation chapter anchors
   const CHAPTER_STATIONS: { id: CinematicSegmentId; label: string; number: string }[] = [
@@ -70,12 +79,16 @@ export function CityUI({
               <h1 className="font-cinzel text-lg sm:text-xl font-bold tracking-[0.25em] text-[#F5F3ED]">
                 AETERNUM
               </h1>
-              <span className="rounded border border-[#D4AF37]/40 bg-[#D4AF37]/10 px-2 py-0.5 font-mono text-[9px] font-bold tracking-widest text-[#FFE8B5]">
-                {eraConfig.yearLabel}
+              <span className={`rounded border px-2 py-0.5 font-mono text-[9px] font-bold tracking-widest ${
+                isMorphing
+                  ? 'border-cyan-400/50 bg-cyan-950/40 text-cyan-300 animate-pulse'
+                  : 'border-[#D4AF37]/40 bg-[#D4AF37]/10 text-[#FFE8B5]'
+              }`}>
+                {morphState.yearDisplay}
               </span>
             </div>
             <span className="font-mono text-[10px] tracking-[0.28em] text-[#D4AF37] uppercase">
-              {eraConfig.epochName} &bull; {activeSegmentConfig.district}
+              {isMorphing ? `MORPHING (${Math.round(morphState.blendFactor * 100)}%)` : eraConfig.epochName} &bull; {activeSegmentConfig.district}
             </span>
           </div>
         </div>
@@ -83,14 +96,14 @@ export function CityUI({
         {/* Telemetry Flight & Temporal Gauge (Desktop) */}
         <div className="hidden md:flex items-center gap-4 rounded-full border border-white/10 bg-[#08090D]/80 px-4 py-1.5 backdrop-blur-md">
           <div className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className={`h-1.5 w-1.5 rounded-full ${isMorphing ? 'bg-cyan-400 animate-ping' : 'bg-emerald-400 animate-pulse'}`} />
             <span className="font-mono text-[10px] tracking-[0.2em] text-zinc-300">
-              TEMPORAL ENGINE
+              {isMorphing ? 'TIME MORPH ACTIVE' : 'TEMPORAL ENGINE'}
             </span>
           </div>
           <span className="font-mono text-[10px] text-zinc-600">|</span>
           <span className="font-mono text-[10px] tracking-widest text-[#EAB774]">
-            {eraConfig.yearLabel}
+            {morphState.yearDisplay}
           </span>
           <span className="font-mono text-[10px] text-zinc-600">|</span>
           <span className="font-mono text-[10px] tracking-widest text-zinc-400">

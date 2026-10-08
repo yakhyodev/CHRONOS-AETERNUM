@@ -1,19 +1,20 @@
 'use client';
 
-import { useMemo, useRef, useEffect, useSyncExternalStore } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { chronosStore } from '@/lib/chronosStore';
-import type { HistoricalEraId } from '@/types/phase03';
+import { getTemporalMorphState } from '@/types/phase06';
 
 export function EraLandmark() {
-  const activeEra = useSyncExternalStore(
-    (cb) => chronosStore.subscribe(cb),
-    () => chronosStore.activeEra,
-    () => 'the-present' as HistoricalEraId
-  );
+  // References for all 5 landmark era variant groups
+  const originGroupRef = useRef<THREE.Group>(null);
+  const kingdomGroupRef = useRef<THREE.Group>(null);
+  const machineGroupRef = useRef<THREE.Group>(null);
+  const presentGroupRef = useRef<THREE.Group>(null);
+  const nextAgeGroupRef = useRef<THREE.Group>(null);
 
-  // Animation refs for moving mechanisms
+  // Moving mechanism refs
   const gearsRef = useRef<THREE.Group>(null);
   const ringsRef = useRef<THREE.Group>(null);
   const energyCoreRef = useRef<THREE.Mesh>(null);
@@ -129,8 +130,38 @@ export function EraLandmark() {
     };
   }, [materials]);
 
-  // Frame animations for moving mechanisms
+  // Frame animation: continuous temporal morphing between active pair
   useFrame((state, delta) => {
+    const pos = chronosStore.timelinePosition;
+    const { eraA, eraB, blendFactor } = getTemporalMorphState(pos);
+
+    const eraRefs = {
+      'the-origin': originGroupRef.current,
+      'the-kingdom': kingdomGroupRef.current,
+      'the-machine': machineGroupRef.current,
+      'the-present': presentGroupRef.current,
+      'the-next-age': nextAgeGroupRef.current,
+    };
+
+    // Update visibility and scale morph for all era groups
+    Object.entries(eraRefs).forEach(([eraKey, group]) => {
+      if (!group) return;
+
+      if (eraKey === eraA) {
+        group.visible = blendFactor < 0.98;
+        const scaleVal = 1.0 - blendFactor * 0.25;
+        group.scale.set(scaleVal, scaleVal, scaleVal);
+        group.position.y = -blendFactor * 1.5;
+      } else if (eraKey === eraB) {
+        group.visible = blendFactor > 0.02;
+        const scaleVal = 0.75 + blendFactor * 0.25;
+        group.scale.set(scaleVal, scaleVal, scaleVal);
+        group.position.y = (1.0 - blendFactor) * -1.5;
+      } else {
+        group.visible = false;
+      }
+    });
+
     // 1890 Mechanical gears rotation
     if (gearsRef.current) {
       gearsRef.current.rotation.z += delta * 0.8;
@@ -148,276 +179,265 @@ export function EraLandmark() {
   });
 
   return (
-    <group position={[0, 0, -124]} name={`Landmark_${activeEra}`}>
+    <group position={[0, 0, -124]} name="EraLandmark_MorphSystem">
       {/* ================================================================== */}
       {/* ERA 01: 1200 BCE — THE PRIMORDIAL SUNDIAL & MONOLITH RING         */}
       {/* ================================================================== */}
-      {activeEra === 'the-origin' && (
-        <group name="Era01_Sundial">
-          {/* Stepped Earth & Sandstone Monolith Dais */}
-          <mesh position={[0, 1.5, 0]} receiveShadow material={materials.primevalSandstone}>
-            <cylinderGeometry args={[14, 16, 3, 16]} />
-          </mesh>
-          <mesh position={[0, 3.5, 0]} receiveShadow material={materials.primevalSandstone}>
-            <cylinderGeometry args={[10, 12, 1.5, 16]} />
-          </mesh>
+      <group ref={originGroupRef} name="Era01_Sundial" visible={false}>
+        {/* Stepped Earth & Sandstone Monolith Dais */}
+        <mesh position={[0, 1.5, 0]} receiveShadow material={materials.primevalSandstone}>
+          <cylinderGeometry args={[14, 16, 3, 16]} />
+        </mesh>
+        <mesh position={[0, 3.5, 0]} receiveShadow material={materials.primevalSandstone}>
+          <cylinderGeometry args={[10, 12, 1.5, 16]} />
+        </mesh>
 
-          {/* Colossal Inclined Bronze Gnomon (Ancient Sun Pointer) */}
-          <mesh
-            position={[0, 14, 2]}
-            rotation={[-Math.PI / 6, 0, 0]}
-            castShadow
-            material={materials.crudeBronze}
-          >
-            <cylinderGeometry args={[0.4, 2.8, 28, 8]} />
-          </mesh>
+        {/* Colossal Inclined Bronze Gnomon (Ancient Sun Pointer) */}
+        <mesh
+          position={[0, 14, 2]}
+          rotation={[-Math.PI / 6, 0, 0]}
+          castShadow
+          material={materials.crudeBronze}
+        >
+          <cylinderGeometry args={[0.4, 2.8, 28, 8]} />
+        </mesh>
 
-          {/* Gnomon Base Monolith Anchor */}
-          <mesh position={[0, 5, 0]} castShadow material={materials.primevalSandstone}>
-            <boxGeometry args={[5, 4, 6]} />
-          </mesh>
+        {/* Gnomon Base Monolith Anchor */}
+        <mesh position={[0, 5, 0]} castShadow material={materials.primevalSandstone}>
+          <boxGeometry args={[5, 4, 6]} />
+        </mesh>
 
-          {/* Concentric Ring of 12 Megalithic Standing Stones */}
-          {Array.from({ length: 12 }).map((_, i) => {
-            const angle = (i / 12) * Math.PI * 2;
-            const radius = 13.5;
-            const x = Math.cos(angle) * radius;
-            const z = Math.sin(angle) * radius;
-            const height = 6 + (i % 3) * 1.5;
-            return (
-              <group key={`megalith-${i}`} position={[x, 0, z]} rotation={[0, -angle, 0]}>
-                <mesh position={[0, height / 2 + 1, 0]} castShadow material={materials.primevalSandstone}>
-                  <boxGeometry args={[1.8, height, 1.2]} />
+        {/* Concentric Ring of 12 Megalithic Standing Stones */}
+        {Array.from({ length: 12 }).map((_, i) => {
+          const angle = (i / 12) * Math.PI * 2;
+          const radius = 13.5;
+          const x = Math.cos(angle) * radius;
+          const z = Math.sin(angle) * radius;
+          const height = 6 + (i % 3) * 1.5;
+          return (
+            <group key={`megalith-${i}`} position={[x, 0, z]} rotation={[0, -angle, 0]}>
+              <mesh position={[0, height / 2 + 1, 0]} castShadow material={materials.primevalSandstone}>
+                <boxGeometry args={[1.8, height, 1.2]} />
+              </mesh>
+              {i % 3 === 0 && (
+                <mesh position={[0, height + 1.4, 0]} material={materials.crudeBronze}>
+                  <coneGeometry args={[1.1, 1.5, 4]} />
                 </mesh>
-                {/* Bronze Solstice Caps on cardinal stones */}
-                {i % 3 === 0 && (
-                  <mesh position={[0, height + 1.4, 0]} material={materials.crudeBronze}>
-                    <coneGeometry args={[1.1, 1.5, 4]} />
-                  </mesh>
-                )}
-              </group>
-            );
-          })}
+              )}
+            </group>
+          );
+        })}
 
-          {/* Central Bronze Fire Brazier Basin */}
-          <mesh position={[0, 4.5, -4]} material={materials.crudeBronze}>
-            <cylinderGeometry args={[1.8, 1.2, 1.4, 12]} />
-          </mesh>
-          <mesh position={[0, 5.4, -4]} material={materials.fireGlow}>
-            <sphereGeometry args={[0.8, 8, 8]} />
-          </mesh>
-        </group>
-      )}
+        {/* Central Bronze Fire Brazier Basin */}
+        <mesh position={[0, 4.5, -4]} material={materials.crudeBronze}>
+          <cylinderGeometry args={[1.8, 1.2, 1.4, 12]} />
+        </mesh>
+        <mesh position={[0, 5.4, -4]} material={materials.fireGlow}>
+          <sphereGeometry args={[0.8, 8, 8]} />
+        </mesh>
+      </group>
 
       {/* ================================================================== */}
       {/* ERA 02: 1450 CE — THE KINGDOM CLOCK TOWER & MEDIEVAL BELFRY        */}
       {/* ================================================================== */}
-      {activeEra === 'the-kingdom' && (
-        <group name="Era02_Belfry">
-          {/* Fortress Ashlar Stone Base (0 to 14m) */}
-          <mesh position={[0, 7, 0]} castShadow receiveShadow material={materials.medievalAshlar}>
-            <boxGeometry args={[12, 14, 12]} />
-          </mesh>
-          {/* Timber Machicolation Overhang (14 to 22m) */}
-          <mesh position={[0, 18, 0]} castShadow receiveShadow material={materials.timberHoarding}>
-            <boxGeometry args={[13.5, 8, 13.5]} />
-          </mesh>
-          {/* Belfry Tower Shaft (22 to 34m) */}
-          <mesh position={[0, 28, 0]} castShadow receiveShadow material={materials.medievalAshlar}>
-            <boxGeometry args={[10, 12, 10]} />
-          </mesh>
-          {/* Open Belfry Bell Chamber (34 to 42m) */}
-          <mesh position={[0, 38, 0]} castShadow material={materials.timberHoarding}>
-            <boxGeometry args={[11, 8, 11]} />
-          </mesh>
-          {/* Medieval Bronze Great Bell in chamber */}
-          <mesh position={[0, 38, 0]} castShadow material={materials.bellBronze}>
-            <cylinderGeometry args={[1.4, 2.4, 3.2, 16]} />
-          </mesh>
-          {/* Historic Copper Conical Spire (42 to 54m) */}
-          <mesh position={[0, 48, 0]} rotation={[0, Math.PI / 4, 0]} castShadow material={materials.agedCopperRoof}>
-            <coneGeometry args={[7.5, 14, 4]} />
-          </mesh>
-          {/* Corner Turret Finials */}
-          {[-5.5, 5.5].map((x) =>
-            [-5.5, 5.5].map((z) => (
-              <mesh key={`turret-${x}-${z}`} position={[x, 43, z]} rotation={[0, Math.PI / 4, 0]} material={materials.agedCopperRoof}>
-                <coneGeometry args={[1.6, 5, 4]} />
-              </mesh>
-            ))
-          )}
-          {/* Early Escapement Clock Face (South) */}
-          <mesh position={[0, 31, 5.1]} rotation={[0, 0, 0]} material={materials.bellBronze}>
-            <cylinderGeometry args={[2.8, 2.8, 0.3, 24]} />
-          </mesh>
-        </group>
-      )}
+      <group ref={kingdomGroupRef} name="Era02_Belfry" visible={false}>
+        {/* Fortress Ashlar Stone Base (0 to 14m) */}
+        <mesh position={[0, 7, 0]} castShadow receiveShadow material={materials.medievalAshlar}>
+          <boxGeometry args={[12, 14, 12]} />
+        </mesh>
+        {/* Timber Machicolation Overhang (14 to 22m) */}
+        <mesh position={[0, 18, 0]} castShadow receiveShadow material={materials.timberHoarding}>
+          <boxGeometry args={[13.5, 8, 13.5]} />
+        </mesh>
+        {/* Belfry Tower Shaft (22 to 34m) */}
+        <mesh position={[0, 28, 0]} castShadow receiveShadow material={materials.medievalAshlar}>
+          <boxGeometry args={[10, 12, 10]} />
+        </mesh>
+        {/* Open Belfry Bell Chamber (34 to 42m) */}
+        <mesh position={[0, 38, 0]} castShadow material={materials.timberHoarding}>
+          <boxGeometry args={[11, 8, 11]} />
+        </mesh>
+        {/* Medieval Bronze Great Bell in chamber */}
+        <mesh position={[0, 38, 0]} castShadow material={materials.bellBronze}>
+          <cylinderGeometry args={[1.4, 2.4, 3.2, 16]} />
+        </mesh>
+        {/* Historic Copper Conical Spire (42 to 54m) */}
+        <mesh position={[0, 48, 0]} rotation={[0, Math.PI / 4, 0]} castShadow material={materials.agedCopperRoof}>
+          <coneGeometry args={[7.5, 14, 4]} />
+        </mesh>
+        {/* Corner Turret Finials */}
+        {[-5.5, 5.5].map((x) =>
+          [-5.5, 5.5].map((z) => (
+            <mesh key={`turret-${x}-${z}`} position={[x, 43, z]} rotation={[0, Math.PI / 4, 0]} material={materials.agedCopperRoof}>
+              <coneGeometry args={[1.6, 5, 4]} />
+            </mesh>
+          ))
+        )}
+        {/* Early Escapement Clock Face (South) */}
+        <mesh position={[0, 31, 5.1]} rotation={[0, 0, 0]} material={materials.bellBronze}>
+          <cylinderGeometry args={[2.8, 2.8, 0.3, 24]} />
+        </mesh>
+      </group>
 
       {/* ================================================================== */}
       {/* ERA 03: 1890 CE — THE STEAM CHRONOMETER & IRON LATTICE TOWER       */}
       {/* ================================================================== */}
-      {activeEra === 'the-machine' && (
-        <group name="Era03_SteamClock">
-          {/* Red Kiln Brick Industrial Base (0 to 14m) */}
-          <mesh position={[0, 7, 0]} castShadow receiveShadow material={materials.victorianBrick}>
-            <boxGeometry args={[13, 14, 13]} />
-          </mesh>
-          {/* Riveted Iron Corner Piers */}
-          {[-6.6, 6.6].map((x) =>
-            [-6.6, 6.6].map((z) => (
-              <mesh key={`iron-pier-${x}-${z}`} position={[x, 7, z]} castShadow material={materials.rivetedIron}>
-                <boxGeometry args={[1.8, 14, 1.8]} />
-              </mesh>
-            ))
-          )}
-          {/* Heavy Iron Lattice Framework Shaft (14 to 34m) */}
-          <mesh position={[0, 24, 0]} castShadow material={materials.rivetedIron}>
-            <boxGeometry args={[9, 20, 9]} />
-          </mesh>
-          {/* Open Machinery Room with Rotating Brass Gears */}
-          <group ref={gearsRef} position={[0, 24, 4.6]}>
-            <mesh material={materials.brassMachinery}>
-              <cylinderGeometry args={[2.4, 2.4, 0.4, 16]} />
+      <group ref={machineGroupRef} name="Era03_SteamClock" visible={false}>
+        {/* Red Kiln Brick Industrial Base (0 to 14m) */}
+        <mesh position={[0, 7, 0]} castShadow receiveShadow material={materials.victorianBrick}>
+          <boxGeometry args={[13, 14, 13]} />
+        </mesh>
+        {/* Riveted Iron Corner Piers */}
+        {[-6.6, 6.6].map((x) =>
+          [-6.6, 6.6].map((z) => (
+            <mesh key={`iron-pier-${x}-${z}`} position={[x, 7, z]} castShadow material={materials.rivetedIron}>
+              <boxGeometry args={[1.8, 14, 1.8]} />
             </mesh>
-            <mesh position={[2.8, 1.2, 0]} material={materials.brassMachinery}>
-              <cylinderGeometry args={[1.6, 1.6, 0.4, 12]} />
-            </mesh>
-          </group>
-          {/* Cast-Iron Observation Balustrade (34 to 37m) */}
-          <mesh position={[0, 35.5, 0]} castShadow material={materials.rivetedIron}>
-            <boxGeometry args={[12, 3, 12]} />
+          ))
+        )}
+        {/* Heavy Iron Lattice Framework Shaft (14 to 34m) */}
+        <mesh position={[0, 24, 0]} castShadow material={materials.rivetedIron}>
+          <boxGeometry args={[9, 20, 9]} />
+        </mesh>
+        {/* Open Machinery Room with Rotating Brass Gears */}
+        <group ref={gearsRef} position={[0, 24, 4.6]}>
+          <mesh material={materials.brassMachinery}>
+            <cylinderGeometry args={[2.4, 2.4, 0.4, 16]} />
           </mesh>
-          {/* Dial Housing and Victorian Bell Tower (37 to 46m) */}
-          <mesh position={[0, 41.5, 0]} castShadow material={materials.victorianBrick}>
-            <boxGeometry args={[10, 9, 10]} />
-          </mesh>
-          {/* Black & Brass Clock Dials */}
-          <mesh position={[0, 41.5, 5.1]} rotation={[Math.PI / 2, 0, 0]} material={materials.brassMachinery}>
-            <cylinderGeometry args={[3.2, 3.2, 0.3, 24]} />
-          </mesh>
-          <mesh position={[0, 41.5, 5.3]} rotation={[Math.PI / 2, 0, 0]} material={materials.gasFlame}>
-            <cylinderGeometry args={[2.5, 2.5, 0.1, 24]} />
-          </mesh>
-          {/* Twin Steam Vents & Smoke Exhaust Chimneys */}
-          <mesh position={[-3, 49, -3]} material={materials.rivetedIron}>
-            <cylinderGeometry args={[0.5, 0.6, 8, 12]} />
-          </mesh>
-          <mesh position={[3, 49, -3]} material={materials.rivetedIron}>
-            <cylinderGeometry args={[0.5, 0.6, 8, 12]} />
+          <mesh position={[2.8, 1.2, 0]} material={materials.brassMachinery}>
+            <cylinderGeometry args={[1.6, 1.6, 0.4, 12]} />
           </mesh>
         </group>
-      )}
+        {/* Cast-Iron Observation Balustrade (34 to 37m) */}
+        <mesh position={[0, 35.5, 0]} castShadow material={materials.rivetedIron}>
+          <boxGeometry args={[12, 3, 12]} />
+        </mesh>
+        {/* Dial Housing and Victorian Bell Tower (37 to 46m) */}
+        <mesh position={[0, 41.5, 0]} castShadow material={materials.victorianBrick}>
+          <boxGeometry args={[10, 9, 10]} />
+        </mesh>
+        {/* Black & Brass Clock Dials */}
+        <mesh position={[0, 41.5, 5.1]} rotation={[Math.PI / 2, 0, 0]} material={materials.brassMachinery}>
+          <cylinderGeometry args={[3.2, 3.2, 0.3, 24]} />
+        </mesh>
+        <mesh position={[0, 41.5, 5.3]} rotation={[Math.PI / 2, 0, 0]} material={materials.gasFlame}>
+          <cylinderGeometry args={[2.5, 2.5, 0.1, 24]} />
+        </mesh>
+        {/* Twin Steam Vents & Smoke Exhaust Chimneys */}
+        <mesh position={[-3, 49, -3]} material={materials.rivetedIron}>
+          <cylinderGeometry args={[0.5, 0.6, 8, 12]} />
+        </mesh>
+        <mesh position={[3, 49, -3]} material={materials.rivetedIron}>
+          <cylinderGeometry args={[0.5, 0.6, 8, 12]} />
+        </mesh>
+      </group>
 
       {/* ================================================================== */}
       {/* ERA 04: 2026 CE — THE RESTORED CENTURY CLOCK TOWER                 */}
       {/* ================================================================== */}
-      {activeEra === 'the-present' && (
-        <group name="Era04_RestoredClock">
-          {/* Plinth and Entrance Base (0 to 12m) */}
-          <mesh position={[0, 6, 0]} castShadow receiveShadow material={materials.civicSandstone}>
-            <boxGeometry args={[13, 12, 13]} />
-          </mesh>
-          {/* Portico Buttresses */}
-          {[-7, 7].map((x) =>
-            [-7, 7].map((z) => (
-              <mesh key={`pres-buttress-${x}-${z}`} position={[x, 5.5, z]} castShadow material={materials.darkGranite}>
-                <boxGeometry args={[2.5, 11, 2.5]} />
-              </mesh>
-            ))
-          )}
-          {/* Tower Shaft with Gothic Pilasters (12 to 34m) */}
-          <mesh position={[0, 23, 0]} castShadow receiveShadow material={materials.civicSandstone}>
-            <boxGeometry args={[10, 22, 10]} />
-          </mesh>
-          {/* Shaft Fluted Corner Buttresses */}
-          {[-5.4, 5.4].map((x) =>
-            [-5.4, 5.4].map((z) => (
-              <mesh key={`pres-shaft-corner-${x}-${z}`} position={[x, 23, z]} castShadow material={materials.darkGranite}>
-                <boxGeometry args={[1.6, 22, 1.6]} />
-              </mesh>
-            ))
-          )}
-          {/* Clock Chamber (34 to 42m) */}
-          <mesh position={[0, 38, 0]} castShadow receiveShadow material={materials.civicSandstone}>
-            <boxGeometry args={[11.2, 8, 11.2]} />
-          </mesh>
-          {/* Luminous Clock Dials on 4 Faces */}
-          <mesh position={[0, 38, 5.7]} rotation={[Math.PI / 2, 0, 0]} material={materials.clockDialLuminous}>
-            <cylinderGeometry args={[3.2, 3.2, 0.25, 32]} />
-          </mesh>
-          <mesh position={[0, 38, -5.7]} rotation={[Math.PI / 2, 0, 0]} material={materials.clockDialLuminous}>
-            <cylinderGeometry args={[3.2, 3.2, 0.25, 32]} />
-          </mesh>
-          <mesh position={[5.7, 38, 0]} rotation={[0, 0, Math.PI / 2]} material={materials.clockDialLuminous}>
-            <cylinderGeometry args={[3.2, 3.2, 0.25, 32]} />
-          </mesh>
-          <mesh position={[-5.7, 38, 0]} rotation={[0, 0, Math.PI / 2]} material={materials.clockDialLuminous}>
-            <cylinderGeometry args={[3.2, 3.2, 0.25, 32]} />
-          </mesh>
-          {/* Copper Mansard Roof & Gold Spire Cupola (42 to 52m) */}
-          <mesh position={[0, 45, 0]} rotation={[0, Math.PI / 4, 0]} castShadow material={materials.darkGranite}>
-            <coneGeometry args={[7.8, 8, 4]} />
-          </mesh>
-          <mesh position={[0, 50.5, 0]} castShadow material={materials.goldCupola}>
-            <sphereGeometry args={[1.2, 16, 16]} />
-          </mesh>
-        </group>
-      )}
+      <group ref={presentGroupRef} name="Era04_RestoredClock" visible={true}>
+        {/* Plinth and Entrance Base (0 to 12m) */}
+        <mesh position={[0, 6, 0]} castShadow receiveShadow material={materials.civicSandstone}>
+          <boxGeometry args={[13, 12, 13]} />
+        </mesh>
+        {/* Portico Buttresses */}
+        {[-7, 7].map((x) =>
+          [-7, 7].map((z) => (
+            <mesh key={`pres-buttress-${x}-${z}`} position={[x, 5.5, z]} castShadow material={materials.darkGranite}>
+              <boxGeometry args={[2.5, 11, 2.5]} />
+            </mesh>
+          ))
+        )}
+        {/* Tower Shaft with Gothic Pilasters (12 to 34m) */}
+        <mesh position={[0, 23, 0]} castShadow receiveShadow material={materials.civicSandstone}>
+          <boxGeometry args={[10, 22, 10]} />
+        </mesh>
+        {/* Shaft Fluted Corner Buttresses */}
+        {[-5.4, 5.4].map((x) =>
+          [-5.4, 5.4].map((z) => (
+            <mesh key={`pres-shaft-corner-${x}-${z}`} position={[x, 23, z]} castShadow material={materials.darkGranite}>
+              <boxGeometry args={[1.6, 22, 1.6]} />
+            </mesh>
+          ))
+        )}
+        {/* Clock Chamber (34 to 42m) */}
+        <mesh position={[0, 38, 0]} castShadow receiveShadow material={materials.civicSandstone}>
+          <boxGeometry args={[11.2, 8, 11.2]} />
+        </mesh>
+        {/* Luminous Clock Dials on 4 Faces */}
+        <mesh position={[0, 38, 5.7]} rotation={[Math.PI / 2, 0, 0]} material={materials.clockDialLuminous}>
+          <cylinderGeometry args={[3.2, 3.2, 0.25, 32]} />
+        </mesh>
+        <mesh position={[0, 38, -5.7]} rotation={[Math.PI / 2, 0, 0]} material={materials.clockDialLuminous}>
+          <cylinderGeometry args={[3.2, 3.2, 0.25, 32]} />
+        </mesh>
+        <mesh position={[5.7, 38, 0]} rotation={[0, 0, Math.PI / 2]} material={materials.clockDialLuminous}>
+          <cylinderGeometry args={[3.2, 3.2, 0.25, 32]} />
+        </mesh>
+        <mesh position={[-5.7, 38, 0]} rotation={[0, 0, Math.PI / 2]} material={materials.clockDialLuminous}>
+          <cylinderGeometry args={[3.2, 3.2, 0.25, 32]} />
+        </mesh>
+        {/* Copper Mansard Roof & Gold Spire Cupola (42 to 52m) */}
+        <mesh position={[0, 45, 0]} rotation={[0, Math.PI / 4, 0]} castShadow material={materials.darkGranite}>
+          <coneGeometry args={[7.8, 8, 4]} />
+        </mesh>
+        <mesh position={[0, 50.5, 0]} castShadow material={materials.goldCupola}>
+          <sphereGeometry args={[1.2, 16, 16]} />
+        </mesh>
+      </group>
 
       {/* ================================================================== */}
       {/* ERA 05: 2200 CE — THE QUANTUM CHRONOS SPIRE & LEVITATING RINGS     */}
       {/* ================================================================== */}
-      {activeEra === 'the-next-age' && (
-        <group name="Era05_QuantumSpire">
-          {/* Monolithic Obsidian Base & Energy Foundation (0 to 16m) */}
-          <mesh position={[0, 8, 0]} castShadow receiveShadow material={materials.darkObsidian}>
-            <cylinderGeometry args={[9, 12, 16, 6]} />
-          </mesh>
-          {/* Luminous Cyan Energy Conduits in Base */}
-          {Array.from({ length: 6 }).map((_, i) => {
-            const angle = (i / 6) * Math.PI * 2;
-            const x = Math.cos(angle) * 9.2;
-            const z = Math.sin(angle) * 9.2;
-            return (
-              <mesh key={`cyan-strip-${i}`} position={[x, 8, z]} material={materials.chroniteCrystal}>
-                <boxGeometry args={[0.4, 15, 0.4]} />
-              </mesh>
-            );
-          })}
-
-          {/* Hexagonal Ascending Spire (16 to 48m) */}
-          <mesh position={[0, 32, 0]} castShadow material={materials.darkObsidian}>
-            <cylinderGeometry args={[4.5, 8.5, 32, 6]} />
-          </mesh>
-
-          {/* Central Levitating Tachyon Energy Core */}
-          <mesh ref={energyCoreRef} position={[0, 36, 0]} material={materials.chroniteCrystal}>
-            <octahedronGeometry args={[3.2, 1]} />
-          </mesh>
-
-          {/* Levitating Concentric Holographic Cyan Containment Rings */}
-          <group ref={ringsRef} position={[0, 36, 0]}>
-            <mesh material={materials.hologramCyan}>
-              <torusGeometry args={[8.5, 0.35, 8, 36]} />
+      <group ref={nextAgeGroupRef} name="Era05_QuantumSpire" visible={false}>
+        {/* Monolithic Obsidian Base & Energy Foundation (0 to 16m) */}
+        <mesh position={[0, 8, 0]} castShadow receiveShadow material={materials.darkObsidian}>
+          <cylinderGeometry args={[9, 12, 16, 6]} />
+        </mesh>
+        {/* Luminous Cyan Energy Conduits in Base */}
+        {Array.from({ length: 6 }).map((_, i) => {
+          const angle = (i / 6) * Math.PI * 2;
+          const x = Math.cos(angle) * 9.2;
+          const z = Math.sin(angle) * 9.2;
+          return (
+            <mesh key={`cyan-strip-${i}`} position={[x, 8, z]} material={materials.chroniteCrystal}>
+              <boxGeometry args={[0.4, 15, 0.4]} />
             </mesh>
-            <mesh rotation={[Math.PI / 4, 0, 0]} material={materials.hologramCyan}>
-              <torusGeometry args={[6.8, 0.25, 8, 32]} />
-            </mesh>
-            <mesh rotation={[-Math.PI / 4, 0, 0]} material={materials.hologramCyan}>
-              <torusGeometry args={[5.2, 0.2, 8, 28]} />
-            </mesh>
-          </group>
+          );
+        })}
 
-          {/* Hyper-Sleek Spire Needle Apex (48 to 62m) */}
-          <mesh position={[0, 54, 0]} castShadow material={materials.darkObsidian}>
-            <coneGeometry args={[3.8, 14, 6]} />
+        {/* Hexagonal Ascending Spire (16 to 48m) */}
+        <mesh position={[0, 32, 0]} castShadow material={materials.darkObsidian}>
+          <cylinderGeometry args={[4.5, 8.5, 32, 6]} />
+        </mesh>
+
+        {/* Central Levitating Tachyon Energy Core */}
+        <mesh ref={energyCoreRef} position={[0, 36, 0]} material={materials.chroniteCrystal}>
+          <octahedronGeometry args={[3.2, 1]} />
+        </mesh>
+
+        {/* Levitating Concentric Holographic Cyan Containment Rings */}
+        <group ref={ringsRef} position={[0, 36, 0]}>
+          <mesh material={materials.hologramCyan}>
+            <torusGeometry args={[8.5, 0.35, 8, 36]} />
           </mesh>
-          {/* Luminous Zenith Emitter Sphere */}
-          <mesh position={[0, 61.5, 0]} material={materials.chroniteCrystal}>
-            <sphereGeometry args={[1.1, 16, 16]} />
+          <mesh rotation={[Math.PI / 4, 0, 0]} material={materials.hologramCyan}>
+            <torusGeometry args={[6.8, 0.25, 8, 32]} />
+          </mesh>
+          <mesh rotation={[-Math.PI / 4, 0, 0]} material={materials.hologramCyan}>
+            <torusGeometry args={[5.2, 0.2, 8, 28]} />
           </mesh>
         </group>
-      )}
+
+        {/* Hyper-Sleek Spire Needle Apex (48 to 62m) */}
+        <mesh position={[0, 54, 0]} castShadow material={materials.darkObsidian}>
+          <coneGeometry args={[3.8, 14, 6]} />
+        </mesh>
+        {/* Luminous Zenith Emitter Sphere */}
+        <mesh position={[0, 61.5, 0]} material={materials.chroniteCrystal}>
+          <sphereGeometry args={[1.1, 16, 16]} />
+        </mesh>
+      </group>
     </group>
   );
 }

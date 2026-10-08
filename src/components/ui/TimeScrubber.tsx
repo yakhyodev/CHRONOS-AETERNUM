@@ -4,10 +4,9 @@ import { useRef, useCallback, useSyncExternalStore } from 'react';
 import {
   ORDERED_ERAS,
   TEMPORAL_ERAS,
-  getEraFromTimelinePosition,
-  getTimelineStopFromEra,
   type HistoricalEraId,
 } from '@/types/phase05';
+import { getTemporalMorphState } from '@/types/phase06';
 import { chronosStore } from '@/lib/chronosStore';
 
 export function TimeScrubber() {
@@ -27,8 +26,10 @@ export function TimeScrubber() {
   const isDragging = useRef(false);
 
   const eraConfig = TEMPORAL_ERAS[activeEra] || TEMPORAL_ERAS['the-present'];
+  const morphState = getTemporalMorphState(timelinePosition);
+  const isMorphing = morphState.blendFactor > 0.02 && morphState.blendFactor < 0.98;
 
-  // Handle pointer down and scrub tracking
+  // Handle pointer down and continuous scrub tracking
   const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!trackRef.current) return;
     isDragging.current = true;
@@ -52,11 +53,6 @@ export function TimeScrubber() {
       isDragging.current = false;
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
-
-      // Snap cleanly to nearest era stop upon release
-      const currentPos = chronosStore.timelinePosition;
-      const nearestEra = getEraFromTimelinePosition(currentPos);
-      chronosStore.setActiveEra(nearestEra);
     };
 
     window.addEventListener('pointermove', handlePointerMove);
@@ -86,13 +82,29 @@ export function TimeScrubber() {
       aria-label="Temporal Era Navigation"
       className="flex flex-col items-center gap-2 pointer-events-auto select-none"
     >
-      {/* 1. Header Display: Era Name & Historical Year Indicator */}
+      {/* 1. Header Display: Era Name & Continuous Interpolated Year Indicator */}
       <div className="flex items-center gap-3">
-        <span className="font-cinzel text-xs font-bold tracking-[0.25em] text-[#FFE8B5]">
-          {eraConfig.epochName}
-        </span>
+        {isMorphing ? (
+          <div className="flex items-center gap-2">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500" />
+            </span>
+            <span className="font-cinzel text-xs font-bold tracking-[0.2em] text-cyan-300">
+              TEMPORAL FLUX
+            </span>
+            <span className="font-mono text-[10px] tracking-wider text-cyan-400/80">
+              ({Math.round(morphState.blendFactor * 100)}%)
+            </span>
+          </div>
+        ) : (
+          <span className="font-cinzel text-xs font-bold tracking-[0.25em] text-[#FFE8B5]">
+            {eraConfig.epochName}
+          </span>
+        )}
+
         <span className="font-mono text-xs font-bold tracking-widest text-[#D4AF37] border-l border-white/20 pl-3">
-          {eraConfig.yearLabel}
+          {morphState.yearDisplay}
         </span>
       </div>
 
@@ -103,26 +115,26 @@ export function TimeScrubber() {
         tabIndex={0}
         aria-label="Time Scrubber"
         aria-valuemin={0}
-        aria-valuemax={4}
-        aria-valuenow={eraConfig.timelineIndex}
-        aria-valuetext={`${eraConfig.epochName} (${eraConfig.yearLabel})`}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(timelinePosition * 100)}
+        aria-valuetext={`${morphState.yearDisplay} (${eraConfig.epochName})`}
         onPointerDown={handlePointerDown}
         onKeyDown={handleKeyDown}
         className="relative w-72 sm:w-96 md:w-[460px] h-9 flex items-center cursor-pointer group focus:outline-none"
       >
         {/* Outer Background Rail */}
-        <div className="absolute inset-x-0 h-1 rounded-full bg-zinc-800/80 border border-white/10" />
+        <div className="absolute inset-x-0 h-1.5 rounded-full bg-zinc-900/90 border border-white/10" />
 
         {/* Illuminated Progress Fill Rail */}
         <div
-          className="absolute left-0 h-1 rounded-full bg-gradient-to-r from-amber-600 via-[#D4AF37] to-amber-300 transition-all duration-75"
+          className="absolute left-0 h-1.5 rounded-full bg-gradient-to-r from-amber-600 via-[#D4AF37] to-cyan-400"
           style={{ width: `${timelinePosition * 100}%` }}
         />
 
         {/* Five Discrete Historical Era Stops */}
         {ORDERED_ERAS.map((eId) => {
           const cfg = TEMPORAL_ERAS[eId];
-          const isStopActive = activeEra === eId;
+          const isStopActive = activeEra === eId && !isMorphing;
           const stopPercent = cfg.timelineStop * 100;
 
           return (
@@ -133,7 +145,7 @@ export function TimeScrubber() {
                 evt.stopPropagation();
                 chronosStore.setActiveEra(eId);
               }}
-              className="absolute -translate-x-1/2 flex flex-col items-center focus:outline-none"
+              className="absolute -translate-x-1/2 flex flex-col items-center focus:outline-none z-10"
               style={{ left: `${stopPercent}%` }}
               title={`${cfg.epochName} (${cfg.yearLabel})`}
             >
@@ -162,7 +174,11 @@ export function TimeScrubber() {
 
         {/* Luminous Draggable Scrubber Thumb */}
         <div
-          className="absolute -translate-x-1/2 h-5 w-5 rounded-full border-2 border-[#FFE8B5] bg-[#D4AF37] shadow-[0_0_14px_rgba(212,175,55,0.8)] pointer-events-none transition-transform duration-75 group-hover:scale-110 group-focus:ring-2 group-focus:ring-[#D4AF37]"
+          className={`absolute -translate-x-1/2 h-5 w-5 rounded-full border-2 transition-transform duration-75 pointer-events-none z-20 ${
+            isMorphing
+              ? 'border-cyan-300 bg-cyan-500 shadow-[0_0_16px_rgba(0,240,255,0.9)] scale-110'
+              : 'border-[#FFE8B5] bg-[#D4AF37] shadow-[0_0_14px_rgba(212,175,55,0.8)]'
+          }`}
           style={{ left: `${timelinePosition * 100}%` }}
         >
           <div className="absolute inset-1 rounded-full bg-[#08090D]" />
@@ -171,3 +187,4 @@ export function TimeScrubber() {
     </div>
   );
 }
+

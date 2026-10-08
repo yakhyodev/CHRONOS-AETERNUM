@@ -351,4 +351,107 @@ describe('CHRONOS — Aeternum State & Timeline Engine', () => {
       expect(chronosStore.timelinePosition).toBe(0.75);
     });
   });
+
+  describe('Phase 06 — Time Morph & Continuous Environment Evolution', () => {
+    it('calculates exact era intervals and blend factors across continuous timeline', async () => {
+      const { getTemporalMorphState } = await import('../src/types/phase06');
+
+      // Test Origin Anchor (t = 0.0)
+      const originState = getTemporalMorphState(0.0);
+      expect(originState.eraA).toBe('the-origin');
+      expect(originState.eraB).toBe('the-kingdom');
+      expect(originState.blendFactor).toBe(0.0);
+      expect(originState.yearDisplay).toBe('1200 BCE');
+      expect(originState.interpolatedYear).toBe(-1200);
+
+      // Test midpoint between 1200 BCE and 1450 CE (t = 0.125)
+      const bronzeMedievalState = getTemporalMorphState(0.125);
+      expect(bronzeMedievalState.eraA).toBe('the-origin');
+      expect(bronzeMedievalState.eraB).toBe('the-kingdom');
+      expect(bronzeMedievalState.blendFactor).toBeCloseTo(0.5, 3);
+      expect(bronzeMedievalState.interpolatedYear).toBe(125); // -1200 + 0.5 * 2650 = 125 CE
+      expect(bronzeMedievalState.yearDisplay).toBe('125 CE');
+
+      // Test Kingdom Anchor (t = 0.25)
+      const kingdomState = getTemporalMorphState(0.25);
+      expect(kingdomState.eraA).toBe('the-kingdom');
+      expect(kingdomState.blendFactor).toBe(0.0);
+      expect(kingdomState.yearDisplay).toBe('1450 CE');
+      expect(kingdomState.interpolatedYear).toBe(1450);
+
+      // Test midpoint between 1450 CE and 1890 CE (t = 0.375)
+      const renaissanceVictorianState = getTemporalMorphState(0.375);
+      expect(renaissanceVictorianState.eraA).toBe('the-kingdom');
+      expect(renaissanceVictorianState.eraB).toBe('the-machine');
+      expect(renaissanceVictorianState.blendFactor).toBeCloseTo(0.5, 3);
+      expect(renaissanceVictorianState.interpolatedYear).toBe(1670); // 1450 + 0.5 * 440 = 1670 CE
+      expect(renaissanceVictorianState.yearDisplay).toBe('1670 CE');
+
+      // Test Machine Anchor (t = 0.50)
+      const machineState = getTemporalMorphState(0.50);
+      expect(machineState.eraA).toBe('the-machine');
+      expect(machineState.blendFactor).toBe(0.0);
+      expect(machineState.yearDisplay).toBe('1890 CE');
+      expect(machineState.interpolatedYear).toBe(1890);
+
+      // Test Present Anchor (t = 0.75)
+      const presentState = getTemporalMorphState(0.75);
+      expect(presentState.eraA).toBe('the-present');
+      expect(presentState.blendFactor).toBe(0.0);
+      expect(presentState.yearDisplay).toBe('2026 CE');
+      expect(presentState.interpolatedYear).toBe(2026);
+
+      // Test midpoint between 2026 CE and 2200 CE (t = 0.875)
+      const futureTransitionState = getTemporalMorphState(0.875);
+      expect(futureTransitionState.eraA).toBe('the-present');
+      expect(futureTransitionState.eraB).toBe('the-next-age');
+      expect(futureTransitionState.blendFactor).toBeCloseTo(0.5, 3);
+      expect(futureTransitionState.interpolatedYear).toBe(2113); // 2026 + 0.5 * 174 = 2113 CE
+      expect(futureTransitionState.yearDisplay).toBe('2113 CE');
+
+      // Test Next Age Anchor (t = 1.0)
+      const nextAgeState = getTemporalMorphState(1.0);
+      expect(nextAgeState.eraA).toBe('the-present');
+      expect(nextAgeState.eraB).toBe('the-next-age');
+      expect(nextAgeState.blendFactor).toBe(1.0);
+      expect(nextAgeState.yearDisplay).toBe('2200 CE');
+      expect(nextAgeState.interpolatedYear).toBe(2200);
+    });
+
+    it('smoothly interpolates atmosphere across historical timeline', async () => {
+      const { getInterpolatedAtmosphere } = await import('../src/types/phase06');
+
+      // Check t = 0.0 (The Origin)
+      const originAtmo = getInterpolatedAtmosphere(0.0);
+      expect(originAtmo.skyColor.toLowerCase()).toBe('#1a1410');
+      expect(originAtmo.fogDensity).toBeCloseTo(0.012, 3);
+
+      // Check t = 0.75 (The Present)
+      const presentAtmo = getInterpolatedAtmosphere(0.75);
+      expect(presentAtmo.skyColor.toLowerCase()).toBe('#211a16');
+      expect(presentAtmo.fogDensity).toBeCloseTo(0.009, 3);
+
+      // Check midpoint t = 0.375
+      const midAtmo = getInterpolatedAtmosphere(0.375);
+      expect(midAtmo.skyColor).toBeTruthy();
+      expect(midAtmo.fogColor).toBeTruthy();
+      expect(midAtmo.sunIntensity).toBeGreaterThan(0);
+      expect(midAtmo.sunPosition).toHaveLength(3);
+    });
+
+    it('supports continuous scrubbing in store while preserving spatial stability', () => {
+      chronosStore.setJourneyProgress(0.5); // Fixed camera at river
+      chronosStore.setTimelinePosition(0.38);
+
+      expect(chronosStore.timelinePosition).toBe(0.38);
+      // Camera journey progress remains completely untouched
+      expect(chronosStore.journeyProgress).toBe(0.5);
+
+      const morph = chronosStore.getMorphState();
+      expect(morph.eraA).toBe('the-kingdom');
+      expect(morph.eraB).toBe('the-machine');
+      expect(morph.yearDisplay).toContain('CE');
+    });
+  });
 });
+

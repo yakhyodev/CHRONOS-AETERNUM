@@ -80,7 +80,7 @@ async function runSmokeTests() {
     console.log('  ✓ Phase 04 flight journey routing & photo references verified');
 
     // 7. Test Phase 05 Temporal Engine & Era Routing
-    console.log('[7/7] Verifying Phase 05 Temporal Engine assets & era route handling...');
+    console.log('[7/8] Verifying Phase 05 Temporal Engine assets & era route handling...');
     const eraTest = await checkUrl(`${baseUrl}?world=city&era=1450`);
     if (eraTest.statusCode !== 200) {
       throw new Error(`Era 1450 routing failed with ${eraTest.statusCode}`);
@@ -89,13 +89,25 @@ async function runSmokeTests() {
     if (temporalArt.statusCode !== 200) {
       throw new Error(`Phase 05 art direction asset returned ${temporalArt.statusCode}`);
     }
-    const manifest = await checkUrl(`${baseUrl}/chronos/phase05/manifest.json`);
-    if (manifest.statusCode !== 200) {
-      throw new Error(`Phase 05 manifest.json returned ${manifest.statusCode}`);
+    const manifest05 = await checkUrl(`${baseUrl}/chronos/phase05/manifest.json`);
+    if (manifest05.statusCode !== 200) {
+      throw new Error(`Phase 05 manifest.json returned ${manifest05.statusCode}`);
     }
     console.log('  ✓ Phase 05 Temporal Engine routing & era assets verified');
 
-    console.log('\nALL 7 E2E SMOKE TESTS PASSED CLEANLY.\n');
+    // 8. Test Phase 06 Time Morph Assets & Route Handling
+    console.log('[8/8] Verifying Phase 06 Time Morph visual assets & manifest...');
+    const morphArt = await checkUrl(`${baseUrl}/chronos/phase06/00-phase06-time-morph-board.jpg`);
+    if (morphArt.statusCode !== 200) {
+      throw new Error(`Phase 06 art direction asset returned ${morphArt.statusCode}`);
+    }
+    const manifest06 = await checkUrl(`${baseUrl}/chronos/phase06/manifest.json`);
+    if (manifest06.statusCode !== 200) {
+      throw new Error(`Phase 06 manifest.json returned ${manifest06.statusCode}`);
+    }
+    console.log('  ✓ Phase 06 Time Morph art assets & manifest verified');
+
+    console.log('\nALL 8 E2E SMOKE TESTS PASSED CLEANLY.\n');
     process.exit(0);
   } catch (err) {
     console.error('Smoke Test Failed:', err.message);

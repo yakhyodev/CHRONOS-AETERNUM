@@ -1,15 +1,26 @@
 'use client';
 
-import { useMemo, useEffect } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { chronosStore } from '@/lib/chronosStore';
+import { getTemporalMorphState } from '@/types/phase06';
 
 export function IndustrialQuarter() {
+  const originRef = useRef<THREE.Group>(null);
+  const kingdomRef = useRef<THREE.Group>(null);
+  const machineRef = useRef<THREE.Group>(null);
+  const presentRef = useRef<THREE.Group>(null);
+  const nextAgeRef = useRef<THREE.Group>(null);
+
   const {
     brickMat,
     darkIronMat,
     roofMetalMat,
     warmFurnaceMat,
-    rustSteelMat,
+    stoneMat,
+    timberMat,
+    cyanEnergyMat,
   } = useMemo(() => {
     return {
       brickMat: new THREE.MeshStandardMaterial({
@@ -33,10 +44,20 @@ export function IndustrialQuarter() {
         emissiveIntensity: 1.6,
         roughness: 0.2,
       }),
-      rustSteelMat: new THREE.MeshStandardMaterial({
-        color: '#7D4835',
-        roughness: 0.7,
-        metalness: 0.4,
+      stoneMat: new THREE.MeshStandardMaterial({
+        color: '#423D38',
+        roughness: 0.9,
+        metalness: 0.05,
+      }),
+      timberMat: new THREE.MeshStandardMaterial({
+        color: '#523A26',
+        roughness: 0.8,
+        metalness: 0.08,
+      }),
+      cyanEnergyMat: new THREE.MeshBasicMaterial({
+        color: '#00F0FF',
+        transparent: true,
+        opacity: 0.85,
       }),
     };
   }, []);
@@ -47,34 +68,56 @@ export function IndustrialQuarter() {
       darkIronMat.dispose();
       roofMetalMat.dispose();
       warmFurnaceMat.dispose();
-      rustSteelMat.dispose();
+      stoneMat.dispose();
+      timberMat.dispose();
+      cyanEnergyMat.dispose();
     };
   }, [
     brickMat,
     darkIronMat,
     roofMetalMat,
     warmFurnaceMat,
-    rustSteelMat,
+    stoneMat,
+    timberMat,
+    cyanEnergyMat,
   ]);
 
-  // Smokestacks / Chimneys
-  const chimneys = [
-    { x: -50, z: -85, height: 38, radius: 1.8 },
-    { x: -75, z: -70, height: 42, radius: 2.2 },
-    { x: -85, z: -92, height: 34, radius: 1.6 },
-  ];
+  useFrame(() => {
+    const pos = chronosStore.timelinePosition;
+    const { eraA, eraB, blendFactor } = getTemporalMorphState(pos);
+
+    const eraRefs = {
+      'the-origin': originRef.current,
+      'the-kingdom': kingdomRef.current,
+      'the-machine': machineRef.current,
+      'the-present': presentRef.current,
+      'the-next-age': nextAgeRef.current,
+    };
+
+    Object.entries(eraRefs).forEach(([eraKey, group]) => {
+      if (!group) return;
+
+      if (eraKey === eraA) {
+        group.visible = blendFactor < 0.98;
+        const s = 1.0 - blendFactor * 0.2;
+        group.scale.set(1, s, 1);
+      } else if (eraKey === eraB) {
+        group.visible = blendFactor > 0.02;
+        const s = 0.8 + blendFactor * 0.2;
+        group.scale.set(1, s, 1);
+      } else {
+        group.visible = false;
+      }
+    });
+  });
 
   return (
-    <group position={[0, 0, 0]}>
-      {/* ================================================================== */}
-      {/* 1. MAIN WAREHOUSE / FACTORY HALL 1 (SAW-TOOTH ROOF) */}
-      {/* ================================================================== */}
+    <group position={[0, 0, 0]} name="IndustrialQuarter_MorphSystem">
+      {/* Permanent Anchor Factory Core Building */}
       <group position={[-58, 0, -70]}>
-        {/* Main Brick Body */}
         <mesh position={[0, 6, 0]} castShadow receiveShadow material={brickMat}>
           <boxGeometry args={[22, 12, 18]} />
         </mesh>
-        {/* Saw-tooth Roof Ridges */}
         {[-6, 0, 6].map((offsetZ) => (
           <mesh
             key={`sawtooth-1-${offsetZ}`}
@@ -86,72 +129,87 @@ export function IndustrialQuarter() {
             <boxGeometry args={[22.5, 3.2, 5.5]} />
           </mesh>
         ))}
-        {/* Illuminated Factory Windows */}
-        <mesh position={[0, 7, 9.1]} material={warmFurnaceMat}>
-          <planeGeometry args={[16, 2.8]} />
+      </group>
+
+      {/* ================================================================== */}
+      {/* ERA 01: 1200 BCE — PRIMITIVE CLAY & BRONZE HEARTHS                */}
+      {/* ================================================================== */}
+      <group ref={originRef} visible={false}>
+        {[-50, -75, -85].map((x, i) => (
+          <mesh key={`orig-hearth-${i}`} position={[x, 3, -80]} castShadow material={stoneMat}>
+            <cylinderGeometry args={[2.5, 3.5, 6, 8]} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* ================================================================== */}
+      {/* ERA 02: 1450 CE — MEDIEVAL GUILD SMITHIES & TIMBER WATERMILLS      */}
+      {/* ================================================================== */}
+      <group ref={kingdomRef} visible={false}>
+        <mesh position={[-75, 5, -75]} castShadow material={timberMat}>
+          <boxGeometry args={[14, 10, 16]} />
+        </mesh>
+        {/* Waterwheel mechanism */}
+        <mesh position={[-75, 4, -66]} rotation={[0, 0, Math.PI / 4]} material={timberMat}>
+          <cylinderGeometry args={[4, 4, 1.2, 12]} />
         </mesh>
       </group>
 
       {/* ================================================================== */}
-      {/* 2. FACTORY COMPLEX 2 (LARGE HEAVY FORGE) */}
+      {/* ERA 03: 1890 CE — TOWERING VICTORIAN BRICK SMOKESTACKS & IRON      */}
       {/* ================================================================== */}
-      <group position={[-78, 0, -82]}>
-        <mesh position={[0, 8, 0]} castShadow receiveShadow material={brickMat}>
-          <boxGeometry args={[26, 16, 22]} />
-        </mesh>
-        {/* Slanted Iron Hip Roof */}
-        <mesh position={[0, 18.5, 0]} rotation={[0, Math.PI / 4, 0]} castShadow material={roofMetalMat}>
-          <coneGeometry args={[16, 5.5, 4]} />
-        </mesh>
-        {/* Large Factory Doors */}
-        <mesh position={[0, 4, 11.1]} material={darkIronMat}>
-          <boxGeometry args={[7, 7, 0.4]} />
+      <group ref={machineRef} visible={false}>
+        {[
+          { x: -50, z: -85, h: 42, r: 2.0 },
+          { x: -75, z: -70, h: 46, r: 2.4 },
+          { x: -85, z: -92, h: 38, r: 1.8 },
+        ].map((c, idx) => (
+          <group key={`m-chimney-${idx}`} position={[c.x, 0, c.z]}>
+            <mesh position={[0, c.h / 2, 0]} castShadow material={brickMat}>
+              <cylinderGeometry args={[c.r * 0.75, c.r, c.h, 16]} />
+            </mesh>
+            <mesh position={[0, c.h - 1, 0]} material={darkIronMat}>
+              <cylinderGeometry args={[c.r * 0.9, c.r * 0.8, 2, 16]} />
+            </mesh>
+          </group>
+        ))}
+        {/* Glowing Foundry Furnaces */}
+        <mesh position={[-58, 6, -60.8]} material={warmFurnaceMat}>
+          <planeGeometry args={[12, 3.2]} />
         </mesh>
       </group>
 
       {/* ================================================================== */}
-      {/* 3. TALL FACTORY CHIMNEYS / SMOKESTACKS */}
+      {/* ERA 04: 2026 CE — RESTORED REDEVELOPED CIVIC BRICK LOFTS (Baseline)*/}
       {/* ================================================================== */}
-      {chimneys.map((c, idx) => (
-        <group key={`chimney-${idx}`} position={[c.x, 0, c.z]}>
-          {/* Base Plinth */}
-          <mesh position={[0, 3, 0]} castShadow receiveShadow material={brickMat}>
-            <boxGeometry args={[c.radius * 2.8, 6, c.radius * 2.8]} />
+      <group ref={presentRef} visible={true}>
+        {[
+          { x: -50, z: -85, h: 36, r: 1.8 },
+          { x: -75, z: -70, h: 40, r: 2.0 },
+        ].map((c, idx) => (
+          <mesh key={`p-chimney-${idx}`} position={[c.x, c.h / 2, c.z]} castShadow material={brickMat}>
+            <cylinderGeometry args={[c.r * 0.8, c.r, c.h, 16]} />
           </mesh>
-          {/* Tapered Brick Chimney Shaft */}
-          <mesh position={[0, c.height * 0.5, 0]} castShadow receiveShadow material={brickMat}>
-            <cylinderGeometry args={[c.radius * 0.7, c.radius, c.height, 16]} />
-          </mesh>
-          {/* Iron Crown Collar */}
-          <mesh position={[0, c.height - 0.5, 0]} material={darkIronMat}>
-            <cylinderGeometry args={[c.radius * 0.85, c.radius * 0.85, 1.2, 16]} />
-          </mesh>
-        </group>
-      ))}
+        ))}
+      </group>
 
       {/* ================================================================== */}
-      {/* 4. OVERHEAD INDUSTRIAL PIPELINES & STRUCTURAL STEEL TRUSSES */}
+      {/* ERA 05: 2200 CE — VERTICAL FUSION PYLONS & TACHYON ENERGY MATRIX   */}
       {/* ================================================================== */}
-      {/* Pipe Line from Complex 1 to Complex 2 */}
-      <mesh position={[-68, 10, -76]} rotation={[0, 0, Math.PI / 2]} material={darkIronMat}>
-        <cylinderGeometry args={[0.7, 0.7, 18, 12]} />
-      </mesh>
-      {/* Pipe Support Columns */}
-      <mesh position={[-68, 5, -76]} material={rustSteelMat}>
-        <boxGeometry args={[0.8, 10, 0.8]} />
-      </mesh>
-
-      {/* Elevated Conveyor Gantry Bridge */}
-      <group position={[-52, 6, -60]}>
-        <mesh position={[0, 0, 0]} castShadow material={rustSteelMat}>
-          <boxGeometry args={[14, 2.2, 3.2]} />
-        </mesh>
-        <mesh position={[-5, -3, 0]} material={darkIronMat}>
-          <boxGeometry args={[0.6, 6, 0.6]} />
-        </mesh>
-        <mesh position={[5, -3, 0]} material={darkIronMat}>
-          <boxGeometry args={[0.6, 6, 0.6]} />
-        </mesh>
+      <group ref={nextAgeRef} visible={false}>
+        {[-50, -75, -88].map((x, i) => (
+          <group key={`future-pylon-${i}`} position={[x, 0, -80]}>
+            <mesh position={[0, 24, 0]} castShadow material={darkIronMat}>
+              <cylinderGeometry args={[1.2, 2.5, 48, 8]} />
+            </mesh>
+            <mesh position={[0, 48, 0]} material={cyanEnergyMat}>
+              <sphereGeometry args={[2.0, 16, 16]} />
+            </mesh>
+            <mesh position={[0, 24, 0]} material={cyanEnergyMat}>
+              <torusGeometry args={[3.2, 0.2, 8, 24]} />
+            </mesh>
+          </group>
+        ))}
       </group>
     </group>
   );

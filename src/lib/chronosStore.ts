@@ -12,6 +12,10 @@ import {
   getTimelineStopFromEra,
   type EraTemporalConfig,
 } from '../types/phase05';
+import {
+  getTemporalMorphState,
+  type TemporalMorphInterval,
+} from '../types/phase06';
 
 export type WorldMode =
   | 'chamber'
@@ -244,8 +248,12 @@ class ChronosStore {
     if (this.activeEra !== derivedEra && !this.isTimeTransitioning) {
       this.activeEra = derivedEra;
       this.targetEra = derivedEra;
-      this.notify();
     }
+    this.notify();
+  }
+
+  public getMorphState(): TemporalMorphInterval {
+    return getTemporalMorphState(this.timelinePosition);
   }
 
   public setTimeTravelEnabled(enabled: boolean): void {

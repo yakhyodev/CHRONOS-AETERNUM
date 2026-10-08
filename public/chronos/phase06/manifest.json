@@ -1,0 +1,48 @@
+{
+  "project": "CHRONOS \u2014 Aeternum",
+  "phase": "06",
+  "scope": "Time Morph and environment evolution across five eras using one fixed city geography",
+  "reference_only": true,
+  "starting_commit": "1723cd38c6546a180e6a3740389c98b32048abd6",
+  "eras": [
+    {
+      "id": "the-origin",
+      "year": -1200,
+      "label": "1200 BCE",
+      "asset": "01-origin-1200-bce-reference.jpg"
+    },
+    {
+      "id": "the-kingdom",
+      "year": 1450,
+      "label": "1450 CE",
+      "asset": "02-kingdom-1450-reference.jpg"
+    },
+    {
+      "id": "the-machine",
+      "year": 1890,
+      "label": "1890 CE",
+      "asset": "03-machine-1890-reference.jpg"
+    },
+    {
+      "id": "the-present",
+      "year": 2026,
+      "label": "2026 CE",
+      "asset": "04-present-2026-reference.jpg"
+    },
+    {
+      "id": "the-next-age",
+      "year": 2200,
+      "label": "2200 CE",
+      "asset": "05-next-age-2200-reference.jpg"
+    }
+  ],
+  "references": [
+    "06-city-atmosphere-strip.jpg",
+    "07-district-evolution-board.jpg",
+    "08-temporal-morph-reference.jpg",
+    "09-time-scrubber-ui-reference.jpg",
+    "10-material-evolution-reference.jpg",
+    "11-temporal-layers-reference.jpg",
+    "12-chamber-city-time-transition-reference.jpg"
+  ]
+}

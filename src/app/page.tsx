@@ -152,6 +152,14 @@ export default function ChronosPage() {
       }
     }
 
+    const urlTimeline = params.get('timeline') || params.get('t');
+    if (urlTimeline !== null && urlTimeline !== undefined) {
+      const val = parseFloat(urlTimeline);
+      if (!isNaN(val)) {
+        chronosStore.setTimelinePosition(val);
+      }
+    }
+
     return () => {
       mediaQuery.removeEventListener('change', handleMotionChange);
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);

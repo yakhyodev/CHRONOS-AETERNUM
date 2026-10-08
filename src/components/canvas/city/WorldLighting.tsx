@@ -1,58 +1,84 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
+import { useRef } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import * as THREE from 'three';
 import type { QualityPreset } from '@/lib/chronosStore';
 import { chronosStore } from '@/lib/chronosStore';
-import { TEMPORAL_ERAS } from '@/types/phase05';
-import type { HistoricalEraId } from '@/types/phase03';
+import { getInterpolatedAtmosphere } from '@/types/phase06';
 
 interface WorldLightingProps {
   qualityPreset?: QualityPreset;
 }
 
 export function WorldLighting({ qualityPreset = 'high' }: WorldLightingProps) {
-  const activeEra = useSyncExternalStore(
-    (cb) => chronosStore.subscribe(cb),
-    () => chronosStore.activeEra,
-    () => 'the-present' as HistoricalEraId
-  );
+  const { scene } = useThree();
 
-  const eraConfig = TEMPORAL_ERAS[activeEra] || TEMPORAL_ERAS['the-present'];
-  const atmosphere = eraConfig.atmosphere;
+  const ambientRef = useRef<THREE.AmbientLight>(null);
+  const hemiRef = useRef<THREE.HemisphereLight>(null);
+  const sunRef = useRef<THREE.DirectionalLight>(null);
+  const rimRef = useRef<THREE.DirectionalLight>(null);
+  const plazaPointRef = useRef<THREE.PointLight>(null);
 
   const isHigh = qualityPreset === 'high';
   const shadowMapSize = isHigh ? 2048 : qualityPreset === 'medium' ? 1024 : 512;
   const enableShadows = qualityPreset !== 'low';
 
-  // Era-specific sun position & directional vectors
-  const sunPosition: [number, number, number] =
-    activeEra === 'the-origin'
-      ? [-140, 45, 60] // Low ancient dawn angle
-      : activeEra === 'the-kingdom'
-      ? [-100, 95, 30] // Medieval morning sun
-      : activeEra === 'the-machine'
-      ? [-130, 50, 50] // Industrial low twilight sun
-      : activeEra === 'the-next-age'
-      ? [-90, 85, -100] // High cyber zenith luminary
-      : [-120, 75, 40]; // 2026 Golden hour sunset
+  useFrame(() => {
+    // Continuous 60fps atmospheric interpolation driven by timelinePosition
+    const pos = chronosStore.timelinePosition;
+    const atm = getInterpolatedAtmosphere(pos);
+
+    if (ambientRef.current) {
+      ambientRef.current.color.set(atm.ambientColor);
+      ambientRef.current.intensity = atm.ambientIntensity;
+    }
+
+    if (hemiRef.current) {
+      hemiRef.current.color.set(atm.sunColor);
+      hemiRef.current.groundColor.set(atm.skyColor);
+    }
+
+    if (sunRef.current) {
+      sunRef.current.color.set(atm.sunColor);
+      sunRef.current.intensity = atm.sunIntensity;
+      sunRef.current.position.set(atm.sunPosition[0], atm.sunPosition[1], atm.sunPosition[2]);
+    }
+
+    if (plazaPointRef.current) {
+      plazaPointRef.current.color.set(atm.accentColor);
+    }
+
+    // Dynamic scene background and fog color sync
+    if (scene.background && 'set' in scene.background) {
+      (scene.background as THREE.Color).set(atm.skyColor);
+    }
+
+    if (scene.fog && 'color' in scene.fog) {
+      scene.fog.color.set(atm.fogColor);
+      (scene.fog as THREE.FogExp2).density = atm.fogDensity;
+    }
+  });
 
   return (
-    <group name={`WorldLighting_${activeEra}`}>
-      {/* 1. Atmospheric Ambient Fill adapted to historical era */}
-      <ambientLight color={atmosphere.ambientColor} intensity={atmosphere.ambientIntensity} />
+    <group name="AeternumWorldLighting">
+      {/* 1. Atmospheric Ambient Fill */}
+      <ambientLight ref={ambientRef} color="#4A3B32" intensity={0.65} />
 
-      {/* 2. Hemisphere Light: Sky color bouncing from terrain */}
+      {/* 2. Hemisphere Light: Sky/Ground bounce */}
       <hemisphereLight
-        color={atmosphere.sunColor}
-        groundColor={atmosphere.skyColor}
+        ref={hemiRef}
+        color="#FFAE73"
+        groundColor="#1D2A3A"
         intensity={0.65}
       />
 
       {/* 3. Primary Directional Celestial Sun/Luminary */}
       <directionalLight
-        position={sunPosition}
-        intensity={atmosphere.sunIntensity}
-        color={atmosphere.sunColor}
+        ref={sunRef}
+        position={[-120, 75, 40]}
+        intensity={2.8}
+        color="#FFB366"
         castShadow={enableShadows}
         shadow-mapSize-width={shadowMapSize}
         shadow-mapSize-height={shadowMapSize}
@@ -67,22 +93,24 @@ export function WorldLighting({ qualityPreset = 'high' }: WorldLightingProps) {
 
       {/* 4. Cool Mountain Rim Light (from Northeast) */}
       <directionalLight
+        ref={rimRef}
         position={[90, 80, -280]}
         intensity={0.7}
-        color={activeEra === 'the-next-age' ? '#00D4FF' : '#8EB1D4'}
+        color="#8EB1D4"
       />
 
       {/* 5. Central Chronos Plaza Ambient Uplight with Era Accent Color */}
       <pointLight
+        ref={plazaPointRef}
         position={[0, 14, -120]}
         intensity={3.4}
         distance={75}
-        color={atmosphere.accentColor}
+        color="#FFA845"
         decay={2}
       />
 
       {/* 6. Dynamic Atmospheric Fog for era aerial perspective */}
-      <fogExp2 attach="fog" args={[atmosphere.fogColor, atmosphere.fogDensity]} />
+      <fogExp2 attach="fog" args={['#2A211D', 0.009]} />
     </group>
   );
 }
