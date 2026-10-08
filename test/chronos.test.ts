@@ -1,14 +1,21 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { chronosStore, QUALITY_PRESETS } from '../src/lib/chronosStore';
 import { CINEMATIC_SHOTS } from '../src/lib/constants';
+import {
+  CINEMATIC_SEGMENTS,
+  CAMERA_JOURNEY_WAYPOINTS,
+  CAMERA_LOOKAT_WAYPOINTS,
+} from '../src/types/phase04';
 import { isWebGLAvailable } from '../src/lib/webglDetect';
 
 describe('CHRONOS — Aeternum State & Timeline Engine', () => {
   beforeEach(() => {
     chronosStore.setActivationProgress(0);
     chronosStore.setTimelineProgress(0);
+    chronosStore.setJourneyProgress(0);
     chronosStore.setActivationState('idle');
     chronosStore.setCurrentShot('shot-01');
+    chronosStore.setCurrentSegment('grand-arrival');
     chronosStore.setQualityPreset('high');
     chronosStore.setReducedMotion(false);
     chronosStore.setIsTransitioning(false);
@@ -161,6 +168,72 @@ describe('CHRONOS — Aeternum State & Timeline Engine', () => {
       expect(chronosStore.portalProgress).toBe(0.75);
       chronosStore.setPortalProgress(1.5);
       expect(chronosStore.portalProgress).toBe(1.0);
+    });
+  });
+
+  describe('Phase 04 — Continuous Cinematic Journey & Spline Flight Engine', () => {
+    it('verifies all 8 cinematic segments have contiguous progress bounds covering 0.0 to 1.0', () => {
+      expect(CINEMATIC_SEGMENTS.length).toBe(8);
+      expect(CINEMATIC_SEGMENTS[0].progressStart).toBe(0.0);
+      expect(CINEMATIC_SEGMENTS[CINEMATIC_SEGMENTS.length - 1].progressEnd).toBe(1.0);
+
+      // Verify each segment starts where previous segment ended
+      for (let i = 1; i < CINEMATIC_SEGMENTS.length; i++) {
+        expect(CINEMATIC_SEGMENTS[i].progressStart).toBe(CINEMATIC_SEGMENTS[i - 1].progressEnd);
+      }
+    });
+
+    it('correctly maps journey progress to segments across all 5 districts', () => {
+      // 0.0 -> Grand Arrival (Chronos Plaza)
+      expect(chronosStore.getSegmentFromProgress(0.0).id).toBe('grand-arrival');
+      // 0.20 -> Into the Old World (Old District)
+      expect(chronosStore.getSegmentFromProgress(0.20).id).toBe('old-district');
+      // 0.35 -> The River Reveal (River Crossing)
+      expect(chronosStore.getSegmentFromProgress(0.35).id).toBe('river-reveal');
+      // 0.50 -> Above the Water (River Crossing)
+      expect(chronosStore.getSegmentFromProgress(0.50).id).toBe('above-water');
+      // 0.65 -> Machine District (Industrial Quarter)
+      expect(chronosStore.getSegmentFromProgress(0.65).id).toBe('machine-district');
+      // 0.75 -> Ascent to Observatory (Northern Hills)
+      expect(chronosStore.getSegmentFromProgress(0.75).id).toBe('ascent-observatory');
+      // 0.88 -> The Observatory
+      expect(chronosStore.getSegmentFromProgress(0.88).id).toBe('the-observatory');
+      // 0.98 -> Return to Chronos (Chronos Plaza)
+      expect(chronosStore.getSegmentFromProgress(0.98).id).toBe('return-chronos');
+    });
+
+    it('returns start progress for a segment', () => {
+      expect(chronosStore.getProgressFromSegment('grand-arrival')).toBe(0.0);
+      expect(chronosStore.getProgressFromSegment('river-reveal')).toBe(0.28);
+      expect(chronosStore.getProgressFromSegment('the-observatory')).toBe(0.82);
+    });
+
+    it('validates 3D spline waypoint collections for camera positions and lookAt targets', () => {
+      expect(CAMERA_JOURNEY_WAYPOINTS.length).toBeGreaterThanOrEqual(15);
+      expect(CAMERA_LOOKAT_WAYPOINTS.length).toBeGreaterThanOrEqual(15);
+
+      CAMERA_JOURNEY_WAYPOINTS.forEach((pt) => {
+        expect(Number.isFinite(pt.x)).toBe(true);
+        expect(Number.isFinite(pt.y)).toBe(true);
+        expect(Number.isFinite(pt.z)).toBe(true);
+      });
+
+      CAMERA_LOOKAT_WAYPOINTS.forEach((pt) => {
+        expect(Number.isFinite(pt.x)).toBe(true);
+        expect(Number.isFinite(pt.y)).toBe(true);
+        expect(Number.isFinite(pt.z)).toBe(true);
+      });
+    });
+
+    it('smoothly clamps journey progress within [0.0, 1.0]', () => {
+      chronosStore.setJourneyProgress(-0.5);
+      expect(chronosStore.journeyProgress).toBe(0.0);
+
+      chronosStore.setJourneyProgress(1.5);
+      expect(chronosStore.journeyProgress).toBe(1.0);
+
+      chronosStore.setJourneyProgress(0.42);
+      expect(chronosStore.journeyProgress).toBe(0.42);
     });
   });
 });

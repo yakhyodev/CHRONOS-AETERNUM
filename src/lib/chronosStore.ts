@@ -1,7 +1,17 @@
 import { CINEMATIC_SHOTS, type CinematicShotId } from './constants';
 import { type CityViewId, CITY_VIEWS } from '../types/phase03';
+import {
+  type CinematicSegmentId,
+  CINEMATIC_SEGMENTS,
+  type CinematicSegmentConfig,
+} from '../types/phase04';
 
-export type WorldMode = 'chamber' | 'transitioning_to_city' | 'city' | 'transitioning_to_chamber';
+export type WorldMode =
+  | 'chamber'
+  | 'transitioning_to_city'
+  | 'city-journey'
+  | 'city'
+  | 'transitioning_to_chamber';
 export type ActivationState = 'idle' | 'activating' | 'active' | 'deactivating';
 export type QualityPreset = 'high' | 'medium' | 'low';
 
@@ -38,12 +48,14 @@ type Listener = () => void;
 class ChronosStore {
   // Continuous 3D animation values (read by Three.js render loop without React re-renders)
   public activationProgress = 0; // 0.0 to 1.0
-  public timelineProgress = 0;   // 0.0 to 1.0
+  public timelineProgress = 0;   // 0.0 to 1.0 for chamber scroll
   public portalProgress = 0;     // 0.0 to 1.0 for temporal vortex warp
+  public journeyProgress = 0;    // 0.0 to 1.0 continuous spline progression for Aeternum flight
   
   // Discrete state (notified to React UI on state change)
   public worldMode: WorldMode = 'chamber';
   public cityView: CityViewId = 'grand-arrival';
+  public currentSegment: CinematicSegmentId = 'grand-arrival';
   public activationState: ActivationState = 'idle';
   public currentShot: CinematicShotId = 'shot-01';
   public qualityPreset: QualityPreset = 'high';
@@ -148,6 +160,36 @@ class ChronosStore {
    */
   public getCityViewConfig(viewId?: CityViewId) {
     return CITY_VIEWS[viewId || this.cityView];
+  }
+
+  public setJourneyProgress(val: number): void {
+    this.journeyProgress = Math.max(0, Math.min(1, val));
+  }
+
+  public setCurrentSegment(segmentId: CinematicSegmentId): void {
+    if (this.currentSegment !== segmentId) {
+      this.currentSegment = segmentId;
+      this.notify();
+    }
+  }
+
+  /**
+   * Derive current active segment configuration from continuous journey progress
+   */
+  public getSegmentFromProgress(progress: number): CinematicSegmentConfig {
+    const clamped = Math.max(0, Math.min(progress, 0.9999));
+    const found = CINEMATIC_SEGMENTS.find(
+      (s) => clamped >= s.progressStart && clamped < s.progressEnd
+    );
+    return found || CINEMATIC_SEGMENTS[0];
+  }
+
+  /**
+   * Get start progress for a segment
+   */
+  public getProgressFromSegment(segmentId: CinematicSegmentId): number {
+    const seg = CINEMATIC_SEGMENTS.find((s) => s.id === segmentId);
+    return seg ? seg.progressStart : 0;
   }
 }
 

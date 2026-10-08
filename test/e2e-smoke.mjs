@@ -17,7 +17,7 @@ async function runSmokeTests() {
 
   try {
     // 1. Root page test
-    console.log('[1/4] Verifying root page response...');
+    console.log('[1/6] Verifying root page response...');
     const page = await checkUrl(baseUrl);
     if (page.statusCode !== 200) {
       throw new Error(`Expected HTTP 200, got ${page.statusCode}`);
@@ -25,7 +25,7 @@ async function runSmokeTests() {
     console.log('  ✓ Root page responded with HTTP 200');
 
     // 2. Title & Branding verification
-    console.log('[2/4] Verifying core typography & assets in response...');
+    console.log('[2/6] Verifying core typography & assets in response...');
     if (!page.data.includes('CHRONOS')) {
       throw new Error('Title "CHRONOS" missing from HTML payload');
     }
@@ -35,7 +35,7 @@ async function runSmokeTests() {
     console.log('  ✓ Branding and metadata verified in HTML');
 
     // 3. Asset availability
-    console.log('[3/4] Verifying visual assets (emblem and atmosphere overlay)...');
+    console.log('[3/6] Verifying visual assets (emblem and atmosphere overlay)...');
     const emblem = await checkUrl(`${baseUrl}/chronos/chronos-core-emblem.svg`);
     if (emblem.statusCode !== 200) {
       throw new Error(`Emblem SVG returned ${emblem.statusCode}`);
@@ -48,7 +48,7 @@ async function runSmokeTests() {
     console.log('  ✓ SVG assets served cleanly');
 
     // 4. Test Chamber Query Routing
-    console.log('[4/5] Verifying shot query route handling...');
+    console.log('[4/6] Verifying shot query route handling...');
     const shotTest = await checkUrl(`${baseUrl}?shot=shot-03`);
     if (shotTest.statusCode !== 200) {
       throw new Error(`Query routing failed with ${shotTest.statusCode}`);
@@ -56,7 +56,7 @@ async function runSmokeTests() {
     console.log('  ✓ Query routing supported without SSR crashes');
 
     // 5. Test Phase 03 City Route & Visual Assets
-    console.log('[5/5] Verifying Phase 03 city route handling & asset board...');
+    console.log('[5/6] Verifying Phase 03 city route handling & asset board...');
     const cityTest = await checkUrl(`${baseUrl}?world=city&view=city-panorama`);
     if (cityTest.statusCode !== 200) {
       throw new Error(`City routing failed with ${cityTest.statusCode}`);
@@ -67,7 +67,19 @@ async function runSmokeTests() {
     }
     console.log('  ✓ City world mode & Phase 03 visual assets verified');
 
-    console.log('\nALL 5 E2E SMOKE TESTS PASSED CLEANLY.\n');
+    // 6. Test Phase 04 Segment Routing & Photographic References
+    console.log('[6/6] Verifying Phase 04 journey segment routing & photo references...');
+    const journeyTest = await checkUrl(`${baseUrl}?world=city&segment=river-reveal`);
+    if (journeyTest.statusCode !== 200) {
+      throw new Error(`Journey segment routing failed with ${journeyTest.statusCode}`);
+    }
+    const photoRef = await checkUrl(`${baseUrl}/chronos/phase04/references/01-grand-arrival-prague-square.jpg`);
+    if (photoRef.statusCode !== 200) {
+      throw new Error(`Phase 04 photo reference returned ${photoRef.statusCode}`);
+    }
+    console.log('  ✓ Phase 04 flight journey routing & photo references verified');
+
+    console.log('\nALL 6 E2E SMOKE TESTS PASSED CLEANLY.\n');
     process.exit(0);
   } catch (err) {
     console.error('Smoke Test Failed:', err.message);
