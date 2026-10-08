@@ -160,6 +160,23 @@ export default function ChronosPage() {
       }
     }
 
+    const urlMode = params.get('mode');
+    if (urlMode === 'explore') {
+      chronosStore.setExperienceMode('explore');
+      const urlDistrict = params.get('district') as any;
+      if (urlDistrict && ['plaza', 'old-district', 'river', 'industry', 'observatory'].includes(urlDistrict)) {
+        chronosStore.setExploreDistrict(urlDistrict);
+      }
+    }
+
+    if (params.get('freeze') === 'true' || params.get('frozen') === 'true') {
+      chronosStore.setIsTimeFrozen(true);
+    }
+
+    if (params.get('lens') === 'true') {
+      chronosStore.openTemporalLens('plaza-tower');
+    }
+
     return () => {
       mediaQuery.removeEventListener('change', handleMotionChange);
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);

@@ -131,10 +131,10 @@ export function Observatory() {
       }
     });
 
-    if (futureRingsRef.current) {
+    if (futureRingsRef.current && !chronosStore.isTimeFrozen) {
       futureRingsRef.current.rotation.y += delta * 1.5;
     }
-    if (telescopeRef.current) {
+    if (telescopeRef.current && !chronosStore.isTimeFrozen) {
       telescopeRef.current.rotation.y = Math.sin(state.clock.getElapsedTime() * 0.2) * 0.3;
     }
   });

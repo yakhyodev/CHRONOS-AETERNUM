@@ -163,16 +163,16 @@ export function EraLandmark() {
     });
 
     // 1890 Mechanical gears rotation
-    if (gearsRef.current) {
+    if (gearsRef.current && !chronosStore.isTimeFrozen) {
       gearsRef.current.rotation.z += delta * 0.8;
     }
 
     // 2200 Levitating rings and pulsing energy core
-    if (ringsRef.current) {
+    if (ringsRef.current && !chronosStore.isTimeFrozen) {
       ringsRef.current.rotation.y += delta * 1.2;
       ringsRef.current.rotation.x = Math.sin(state.clock.getElapsedTime() * 0.8) * 0.15;
     }
-    if (energyCoreRef.current) {
+    if (energyCoreRef.current && !chronosStore.isTimeFrozen) {
       const pulse = 1.0 + Math.sin(state.clock.getElapsedTime() * 2.5) * 0.15;
       energyCoreRef.current.scale.set(pulse, pulse, pulse);
     }

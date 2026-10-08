@@ -11,6 +11,9 @@ import { OldDistrict } from './OldDistrict';
 import { RiverCrossing } from './RiverCrossing';
 import { IndustrialQuarter } from './IndustrialQuarter';
 import { Observatory } from './Observatory';
+import { TemporalEchoesLayer } from './TemporalEchoesLayer';
+import { TemporalLensGhost } from './TemporalLensGhost';
+import { chronosStore } from '@/lib/chronosStore';
 
 interface AeternumWorldProps {
   qualityPreset?: QualityPreset;
@@ -49,6 +52,8 @@ export function AeternumWorld({ qualityPreset = 'high' }: AeternumWorldProps) {
   }, [hazeMaterial]);
 
   useFrame((state, delta) => {
+    if (chronosStore.isTimeFrozen) return;
+
     if (hazePointsRef.current) {
       hazePointsRef.current.rotation.y += delta * 0.015;
       const t = state.clock.getElapsedTime();
@@ -79,7 +84,13 @@ export function AeternumWorld({ qualityPreset = 'high' }: AeternumWorldProps) {
       {/* 7. District 05: The Observatory (Northern Elevated Hill) */}
       <Observatory />
 
-      {/* 8. Atmospheric Sunset Floating Embers */}
+      {/* 8. Phase 07: Discoverable Temporal Echoes in Districts */}
+      <TemporalEchoesLayer />
+
+      {/* 9. Phase 07: Temporal Lens Holographic Alternate-Era Preview */}
+      <TemporalLensGhost />
+
+      {/* 10. Atmospheric Sunset Floating Embers */}
       <points ref={hazePointsRef} material={hazeMaterial}>
         <bufferGeometry>
           <bufferAttribute

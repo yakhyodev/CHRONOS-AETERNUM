@@ -16,6 +16,15 @@ import {
   getTemporalMorphState,
   type TemporalMorphInterval,
 } from '../types/phase06';
+import type {
+  ExperienceMode,
+  CameraControllerMode,
+  ExploreDistrictId,
+  TemporalLensLandmarkId,
+  TemporalEchoId,
+  TemporalEchoConfig,
+} from '../types/phase07';
+import { TEMPORAL_ECHOES } from '../types/phase07';
 
 export type WorldMode =
   | 'chamber'
@@ -80,6 +89,26 @@ class ChronosStore {
   public isTimeTransitioning = false;
   public timelinePosition = 0.75; // Default 2026 CE (timelineStop: 0.75)
   public timeTravelEnabled = true;
+
+  // Phase 07 Exploration, Temporal Lens & Echoes State
+  public experienceMode: ExperienceMode = 'story';
+  public cameraController: CameraControllerMode = 'cinematic';
+  public exploreDistrict: ExploreDistrictId = 'plaza';
+  public isTimeFrozen = false;
+  public temporalLens: {
+    active: boolean;
+    landmarkId: TemporalLensLandmarkId | null;
+    previewEra: HistoricalEraId;
+  } = {
+    active: false,
+    landmarkId: null,
+    previewEra: 'the-kingdom',
+  };
+  public discoveredEchoes = new Set<TemporalEchoId>();
+  public discoveredEchoesList: TemporalEchoId[] = [];
+  public activeEchoModal: TemporalEchoConfig | null = null;
+  public isJournalOpen = false;
+  public lastStoryProgress = 0;
 
   private listeners = new Set<Listener>();
 
@@ -278,6 +307,120 @@ class ChronosStore {
     } else if (direction === 'prev' && currentIndex > 0) {
       this.setActiveEra(ORDERED_ERAS[currentIndex - 1]);
     }
+  }
+
+  // ==========================================================================
+  // Phase 07 Exploration, Temporal Lens & Echoes Methods
+  // ==========================================================================
+
+  public setExperienceMode(mode: ExperienceMode): void {
+    if (this.experienceMode !== mode) {
+      if (mode === 'explore') {
+        this.lastStoryProgress = this.journeyProgress;
+        this.cameraController = 'exploring';
+      } else {
+        this.cameraController = 'cinematic';
+        this.closeTemporalLens();
+      }
+      this.experienceMode = mode;
+      this.notify();
+    }
+  }
+
+  public setExploreDistrict(district: ExploreDistrictId): void {
+    if (this.exploreDistrict !== district) {
+      this.exploreDistrict = district;
+      this.cameraController = 'transitioning';
+      this.notify();
+    }
+  }
+
+  public setCameraController(controller: CameraControllerMode): void {
+    if (this.cameraController !== controller) {
+      this.cameraController = controller;
+      this.notify();
+    }
+  }
+
+  public setIsTimeFrozen(val: boolean): void {
+    if (this.isTimeFrozen !== val) {
+      this.isTimeFrozen = val;
+      this.notify();
+    }
+  }
+
+  public toggleTimeFreeze(): void {
+    this.isTimeFrozen = !this.isTimeFrozen;
+    this.notify();
+  }
+
+  public openTemporalLens(landmarkId: TemporalLensLandmarkId, previewEra?: HistoricalEraId): void {
+    const era = previewEra || (this.activeEra === 'the-kingdom' ? 'the-machine' : 'the-kingdom');
+    this.temporalLens = {
+      active: true,
+      landmarkId,
+      previewEra: era,
+    };
+    this.cameraController = 'inspecting';
+    this.notify();
+  }
+
+  public closeTemporalLens(): void {
+    if (this.temporalLens.active) {
+      this.temporalLens = {
+        active: false,
+        landmarkId: null,
+        previewEra: 'the-kingdom',
+      };
+      if (this.experienceMode === 'explore') {
+        this.cameraController = 'exploring';
+      } else {
+        this.cameraController = 'cinematic';
+      }
+      this.notify();
+    }
+  }
+
+  public setTemporalLensPreviewEra(era: HistoricalEraId): void {
+    if (this.temporalLens.previewEra !== era) {
+      this.temporalLens.previewEra = era;
+      this.notify();
+    }
+  }
+
+  public discoverEcho(echoId: TemporalEchoId): void {
+    if (!this.discoveredEchoes.has(echoId)) {
+      this.discoveredEchoes.add(echoId);
+      this.discoveredEchoesList = Array.from(this.discoveredEchoes);
+      this.activeEchoModal = TEMPORAL_ECHOES[echoId] || null;
+      this.notify();
+    } else {
+      this.activeEchoModal = TEMPORAL_ECHOES[echoId] || null;
+      this.notify();
+    }
+  }
+
+  public clearDiscoveredEchoes(): void {
+    this.discoveredEchoes.clear();
+    this.discoveredEchoesList = [];
+    this.activeEchoModal = null;
+    this.notify();
+  }
+
+  public setActiveEchoModal(echo: TemporalEchoConfig | null): void {
+    this.activeEchoModal = echo;
+    this.notify();
+  }
+
+  public setIsJournalOpen(open: boolean): void {
+    if (this.isJournalOpen !== open) {
+      this.isJournalOpen = open;
+      this.notify();
+    }
+  }
+
+  public getDiscoveredEchoesCount(): number {
+    return this.discoveredEchoes.size;
   }
 }
 

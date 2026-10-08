@@ -96,7 +96,7 @@ async function runSmokeTests() {
     console.log('  ✓ Phase 05 Temporal Engine routing & era assets verified');
 
     // 8. Test Phase 06 Time Morph Assets & Route Handling
-    console.log('[8/8] Verifying Phase 06 Time Morph visual assets & manifest...');
+    console.log('[8/9] Verifying Phase 06 Time Morph visual assets & manifest...');
     const morphArt = await checkUrl(`${baseUrl}/chronos/phase06/00-phase06-time-morph-board.jpg`);
     if (morphArt.statusCode !== 200) {
       throw new Error(`Phase 06 art direction asset returned ${morphArt.statusCode}`);
@@ -107,7 +107,23 @@ async function runSmokeTests() {
     }
     console.log('  ✓ Phase 06 Time Morph art assets & manifest verified');
 
-    console.log('\nALL 8 E2E SMOKE TESTS PASSED CLEANLY.\n');
+    // 9. Test Phase 07 Explore Mode & Temporal Echoes Assets
+    console.log('[9/9] Verifying Phase 07 Explore Mode routing & anomaly assets...');
+    const exploreTest = await checkUrl(`${baseUrl}?world=city&mode=explore&district=plaza`);
+    if (exploreTest.statusCode !== 200) {
+      throw new Error(`Explore mode routing failed with ${exploreTest.statusCode}`);
+    }
+    const anomalyArt = await checkUrl(`${baseUrl}/chronos/phase07/00-narrative-and-anomalies-board.jpg`);
+    if (anomalyArt.statusCode !== 200) {
+      throw new Error(`Phase 07 narrative anomalies asset returned ${anomalyArt.statusCode}`);
+    }
+    const manifest07 = await checkUrl(`${baseUrl}/chronos/phase07/manifest.json`);
+    if (manifest07.statusCode !== 200) {
+      throw new Error(`Phase 07 manifest.json returned ${manifest07.statusCode}`);
+    }
+    console.log('  ✓ Phase 07 Explore Mode routing & anomaly assets verified');
+
+    console.log('\nALL 9 E2E SMOKE TESTS PASSED CLEANLY.\n');
     process.exit(0);
   } catch (err) {
     console.error('Smoke Test Failed:', err.message);

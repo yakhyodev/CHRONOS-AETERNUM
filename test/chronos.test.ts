@@ -453,5 +453,128 @@ describe('CHRONOS — Aeternum State & Timeline Engine', () => {
       expect(morph.yearDisplay).toContain('CE');
     });
   });
+
+  describe('Phase 07 — Exploration, Temporal Lens & Echoes', () => {
+    it('switches between Story Mode and Explore Mode cleanly without corrupting journey progress', () => {
+      chronosStore.setJourneyProgress(0.65);
+      chronosStore.setCurrentSegment('machine-district');
+
+      // Enter explore mode
+      chronosStore.setExperienceMode('explore');
+      expect(chronosStore.experienceMode).toBe('explore');
+      expect(chronosStore.cameraController).toBe('exploring');
+      expect(chronosStore.lastStoryProgress).toBe(0.65);
+
+      // Explore district change
+      chronosStore.setExploreDistrict('observatory');
+      expect(chronosStore.exploreDistrict).toBe('observatory');
+      expect(chronosStore.cameraController).toBe('transitioning');
+
+      // Return to story mode
+      chronosStore.setExperienceMode('story');
+      expect(chronosStore.experienceMode).toBe('story');
+      expect(chronosStore.cameraController).toBe('cinematic');
+      expect(chronosStore.journeyProgress).toBe(0.65);
+      expect(chronosStore.currentSegment).toBe('machine-district');
+    });
+
+    it('verifies all 5 district explore anchors have valid bounded constraints', async () => {
+      const { DISTRICT_EXPLORE_ANCHORS } = await import('../src/types/phase07');
+      const districts = ['plaza', 'old-district', 'river', 'industry', 'observatory'] as const;
+
+      districts.forEach((dId) => {
+        const anchor = DISTRICT_EXPLORE_ANCHORS[dId];
+        expect(anchor.id).toBe(dId);
+        expect(anchor.name).toBeTruthy();
+        expect(anchor.cameraPosition).toHaveLength(3);
+        expect(anchor.targetPosition).toHaveLength(3);
+        expect(anchor.minDistance).toBeGreaterThan(0);
+        expect(anchor.maxDistance).toBeGreaterThan(anchor.minDistance);
+        expect(anchor.minPolarAngle).toBeGreaterThan(0);
+        expect(anchor.maxPolarAngle).toBeGreaterThan(anchor.minPolarAngle);
+      });
+    });
+
+    it('manages Time Freeze state reversibly without affecting time position', () => {
+      expect(chronosStore.isTimeFrozen).toBe(false);
+
+      chronosStore.toggleTimeFreeze();
+      expect(chronosStore.isTimeFrozen).toBe(true);
+
+      chronosStore.toggleTimeFreeze();
+      expect(chronosStore.isTimeFrozen).toBe(false);
+
+      chronosStore.setIsTimeFrozen(true);
+      expect(chronosStore.isTimeFrozen).toBe(true);
+      chronosStore.setIsTimeFrozen(false);
+      expect(chronosStore.isTimeFrozen).toBe(false);
+    });
+
+    it('activates and closes Temporal Lens without altering global activeEra', () => {
+      chronosStore.setActiveEra('the-present');
+      expect(chronosStore.activeEra).toBe('the-present');
+
+      // Open lens on plaza tower previewing 1450 CE
+      chronosStore.openTemporalLens('plaza-tower', 'the-kingdom');
+      expect(chronosStore.temporalLens.active).toBe(true);
+      expect(chronosStore.temporalLens.landmarkId).toBe('plaza-tower');
+      expect(chronosStore.temporalLens.previewEra).toBe('the-kingdom');
+      expect(chronosStore.cameraController).toBe('inspecting');
+
+      // Crucial: Global activeEra must remain the-present
+      expect(chronosStore.activeEra).toBe('the-present');
+
+      // Switch preview era inside lens
+      chronosStore.setTemporalLensPreviewEra('the-origin');
+      expect(chronosStore.temporalLens.previewEra).toBe('the-origin');
+      expect(chronosStore.activeEra).toBe('the-present');
+
+      // Close lens
+      chronosStore.closeTemporalLens();
+      expect(chronosStore.temporalLens.active).toBe(false);
+      expect(chronosStore.temporalLens.landmarkId).toBeNull();
+      expect(chronosStore.activeEra).toBe('the-present');
+    });
+
+    it('verifies all 5 Temporal Echoes are configured across 5 districts and eras', async () => {
+      const { TEMPORAL_ECHOES, ORDERED_ECHO_IDS } = await import('../src/types/phase07');
+      expect(ORDERED_ECHO_IDS).toHaveLength(5);
+
+      ORDERED_ECHO_IDS.forEach((id) => {
+        const echo = TEMPORAL_ECHOES[id];
+        expect(echo.id).toBe(id);
+        expect(echo.name).toBeTruthy();
+        expect(echo.artifactName).toBeTruthy();
+        expect(echo.clue).toBeTruthy();
+        expect(echo.position).toHaveLength(3);
+        expect(echo.color).toBeTruthy();
+      });
+    });
+
+    it('tracks discovery progress and opens clue modal', () => {
+      chronosStore.clearDiscoveredEchoes();
+      expect(chronosStore.getDiscoveredEchoesCount()).toBe(0);
+
+      // Discover Echo 01
+      chronosStore.discoverEcho('echo-01-mark');
+      expect(chronosStore.getDiscoveredEchoesCount()).toBe(1);
+      expect(chronosStore.activeEchoModal?.id).toBe('echo-01-mark');
+
+      // Re-inspecting should not duplicate
+      chronosStore.discoverEcho('echo-01-mark');
+      expect(chronosStore.getDiscoveredEchoesCount()).toBe(1);
+
+      // Discover Echo 02
+      chronosStore.discoverEcho('echo-02-record');
+      expect(chronosStore.getDiscoveredEchoesCount()).toBe(2);
+
+      // Journal open / close
+      chronosStore.setIsJournalOpen(true);
+      expect(chronosStore.isJournalOpen).toBe(true);
+      chronosStore.setIsJournalOpen(false);
+      expect(chronosStore.isJournalOpen).toBe(false);
+    });
+  });
 });
+
 

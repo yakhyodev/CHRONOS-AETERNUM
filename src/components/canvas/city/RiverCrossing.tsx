@@ -124,7 +124,7 @@ export function RiverCrossing() {
   ]);
 
   useFrame((state) => {
-    if (waterRef.current) {
+    if (waterRef.current && !chronosStore.isTimeFrozen) {
       const t = state.clock.getElapsedTime();
       waterRef.current.position.y = -1.5 + Math.sin(t * 1.2) * 0.05;
     }
