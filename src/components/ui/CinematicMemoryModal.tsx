@@ -1,8 +1,9 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { chronosStore } from '@/lib/chronosStore';
 import { TEMPORAL_ECHOES } from '@/types/phase07';
+import { audioManager } from '@/lib/audioManager';
 
 export function CinematicMemoryModal() {
   const activeMemory = useSyncExternalStore(
@@ -16,6 +17,12 @@ export function CinematicMemoryModal() {
     () => chronosStore.activeEchoModal,
     () => null
   );
+
+  useEffect(() => {
+    if (activeMemory && activeEcho) {
+      audioManager.playEcho();
+    }
+  }, [activeMemory, activeEcho]);
 
   if (!activeMemory || !activeEcho) return null;
 
@@ -96,7 +103,9 @@ export function CinematicMemoryModal() {
         {/* Action Buttons */}
         <div className="mt-6 flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-white/10">
           <button
+            onMouseEnter={() => audioManager.playHover()}
             onClick={() => {
+              audioManager.playConfirm();
               chronosStore.closeEchoMemory();
               chronosStore.setActiveEchoModal(null);
               chronosStore.setIsJournalOpen(true);
@@ -106,7 +115,9 @@ export function CinematicMemoryModal() {
             OPEN NARRATIVE ARCHIVE
           </button>
           <button
+            onMouseEnter={() => audioManager.playHover()}
             onClick={() => {
+              audioManager.playConfirm();
               chronosStore.closeEchoMemory();
               chronosStore.setActiveEchoModal(null);
             }}

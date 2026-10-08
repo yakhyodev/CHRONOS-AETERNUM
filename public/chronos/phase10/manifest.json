@@ -1,0 +1,29 @@
+{
+  "project": "CHRONOS \u2014 Aeternum",
+  "phase": "10",
+  "theme": "Cinematic Audio, Premium UI and Final Polish",
+  "visual_assets_are_references_only": true,
+  "audio_assets_are_prototype_concept_cues": true,
+  "starting_after_phase": "09",
+  "images": [
+    "00-phase10-audio-ui-board.jpg",
+    "01-chronos-core-ui-reference.jpg",
+    "02-aeternum-city-ui-reference.jpg",
+    "03-loading-transition-reference.jpg",
+    "04-ui-components-library-reference.jpg",
+    "05-audio-design-reference.jpg",
+    "06-final-polish-reference.jpg",
+    "07-premium-ui-style-reference.jpg",
+    "08-microinteractions-reference.jpg"
+  ],
+  "audio": [
+    "01-chamber-drone.wav",
+    "02-aeternum-city-ambience.wav",
+    "03-temporal-whoosh.wav",
+    "04-echo-chime.wav",
+    "05-finale-swell.wav",
+    "06-ui-hover.wav",
+    "07-button-confirm.wav",
+    "08-loading-hum.wav"
+  ]
+}

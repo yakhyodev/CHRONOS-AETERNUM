@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { chronosStore } from '@/lib/chronosStore';
 import { ENDINGS_CONFIG, type ParadoxEnding, type ParadoxState } from '@/types/phase09';
+import { audioManager } from '@/lib/audioManager';
 
 export function FinalChoiceModal() {
   const paradoxState = useSyncExternalStore(
@@ -22,6 +23,12 @@ export function FinalChoiceModal() {
 
   // Modal is visible when in 'awaiting-choice' or 'resolving' state
   const isOpen = paradoxState === 'awaiting-choice' || paradoxState === 'resolving';
+
+  useEffect(() => {
+    if (isOpen) {
+      audioManager.playFinaleSwell();
+    }
+  }, [isOpen]);
 
   // Keyboard navigation
   const handleKeyDown = useCallback(
@@ -138,7 +145,11 @@ export function FinalChoiceModal() {
             <div className="flex items-center gap-4 w-full justify-center">
               <button
                 type="button"
-                onClick={() => setShowConfirmation(false)}
+                onMouseEnter={() => audioManager.playHover()}
+                onClick={() => {
+                  audioManager.playConfirm();
+                  setShowConfirmation(false);
+                }}
                 disabled={isResolving}
                 className="px-6 py-2.5 rounded-full border border-white/20 bg-white/5 hover:bg-white/10 text-zinc-300 font-cinzel text-xs tracking-wider transition"
               >
@@ -147,7 +158,9 @@ export function FinalChoiceModal() {
 
               <button
                 type="button"
+                onMouseEnter={() => audioManager.playHover()}
                 onClick={() => {
+                  audioManager.playFinaleSwell();
                   chronosStore.selectEnding(focusedChoice);
                   chronosStore.confirmEnding();
                 }}
@@ -169,11 +182,15 @@ export function FinalChoiceModal() {
             {/* OPTION 1: RESTORE TIME */}
             <div
               onClick={() => {
+                audioManager.playConfirm();
                 setFocusedChoice('restore_time');
                 chronosStore.selectEnding('restore_time');
                 setShowConfirmation(true);
               }}
-              onMouseEnter={() => setFocusedChoice('restore_time')}
+              onMouseEnter={() => {
+                audioManager.playHover();
+                setFocusedChoice('restore_time');
+              }}
               className={`cursor-pointer rounded-2xl border p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 ${
                 focusedChoice === 'restore_time'
                   ? 'border-[#D4AF37] bg-[#D4AF37]/15 shadow-[0_0_30px_rgba(212,175,55,0.3)] scale-[1.02]'
@@ -221,11 +238,15 @@ export function FinalChoiceModal() {
             {/* OPTION 2: EXPLORE THE UNKNOWN */}
             <div
               onClick={() => {
+                audioManager.playConfirm();
                 setFocusedChoice('explore_unknown');
                 chronosStore.selectEnding('explore_unknown');
                 setShowConfirmation(true);
               }}
-              onMouseEnter={() => setFocusedChoice('explore_unknown')}
+              onMouseEnter={() => {
+                audioManager.playHover();
+                setFocusedChoice('explore_unknown');
+              }}
               className={`cursor-pointer rounded-2xl border p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 ${
                 focusedChoice === 'explore_unknown'
                   ? 'border-cyan-400 bg-cyan-500/15 shadow-[0_0_30px_rgba(0,240,255,0.3)] scale-[1.02]'

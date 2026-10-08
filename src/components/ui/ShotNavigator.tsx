@@ -1,6 +1,7 @@
 'use client';
 
 import { CINEMATIC_SHOTS, type CinematicShotId } from '@/lib/constants';
+import { audioManager } from '@/lib/audioManager';
 
 interface ShotNavigatorProps {
   currentShot: CinematicShotId;
@@ -28,7 +29,11 @@ export function ShotNavigator({
             key={shot.id}
             type="button"
             disabled={disabled}
-            onClick={() => onSelectShot(shot.id)}
+            onMouseEnter={() => audioManager.playHover()}
+            onClick={() => {
+              audioManager.playConfirm();
+              onSelectShot(shot.id);
+            }}
             aria-label={`Select shot ${shot.number}: ${shot.name}`}
             aria-pressed={isSelected}
             className={`group relative flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-mono transition-all duration-300 disabled:opacity-40 ${

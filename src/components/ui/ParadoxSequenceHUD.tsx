@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from 'react';
 import { chronosStore } from '@/lib/chronosStore';
 import { PARADOX_SEQUENCES, type ParadoxState } from '@/types/phase09';
+import { audioManager } from '@/lib/audioManager';
 
 export function ParadoxSequenceHUD() {
   const paradoxState = useSyncExternalStore(
@@ -74,7 +75,11 @@ export function ParadoxSequenceHUD() {
         <div className="flex items-center justify-between pt-2 border-t border-white/10">
           <button
             type="button"
-            onClick={() => chronosStore.cancelParadoxFinale()}
+            onMouseEnter={() => audioManager.playHover()}
+            onClick={() => {
+              audioManager.playConfirm();
+              chronosStore.cancelParadoxFinale();
+            }}
             className="text-zinc-500 hover:text-zinc-300 font-mono text-[9px] tracking-wider uppercase transition"
           >
             &times; EXIT FINALE
@@ -84,7 +89,11 @@ export function ParadoxSequenceHUD() {
             {sequenceIndex > 0 && (
               <button
                 type="button"
-                onClick={() => chronosStore.prevParadoxSequence()}
+                onMouseEnter={() => audioManager.playHover()}
+                onClick={() => {
+                  audioManager.playWhoosh();
+                  chronosStore.prevParadoxSequence();
+                }}
                 className="px-3 py-1 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 text-zinc-300 font-cinzel text-[10px] tracking-wider transition"
               >
                 &larr; PREV
@@ -93,7 +102,13 @@ export function ParadoxSequenceHUD() {
 
             <button
               type="button"
+              onMouseEnter={() => audioManager.playHover()}
               onClick={() => {
+                if (sequenceIndex === 3) {
+                  audioManager.playFinaleSwell();
+                } else {
+                  audioManager.playConfirm();
+                }
                 if (sequenceIndex < 4) {
                   chronosStore.nextParadoxSequence();
                 }

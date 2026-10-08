@@ -22,6 +22,8 @@ import { ObserverTransmissionHUD } from './ObserverTransmissionHUD';
 import { ParadoxSequenceHUD } from './ParadoxSequenceHUD';
 import { FinalChoiceModal } from './FinalChoiceModal';
 import { EpilogueOverlay } from './EpilogueOverlay';
+import { AudioControlsHUD } from './AudioControlsHUD';
+import { audioManager } from '@/lib/audioManager';
 
 interface CityUIProps {
   onSelectSegment: (segmentId: CinematicSegmentId) => void;
@@ -157,13 +159,20 @@ export function CityUI({
           </span>
         </div>
 
-        {/* Center Header Controls: Mode Switcher & Echo Journal Pill */}
+        {/* Center Header Controls: Mode Switcher, Echo Journal Pill & Audio HUD */}
         <div className="flex items-center gap-3">
+          {/* Audio Controls HUD */}
+          <AudioControlsHUD />
+
           {/* Mode Switcher */}
           <div className="flex items-center gap-1 rounded-full border border-white/15 bg-[#08090D]/85 p-1 shadow-lg backdrop-blur-md">
             <button
               type="button"
-              onClick={() => chronosStore.setExperienceMode('story')}
+              onMouseEnter={() => audioManager.playHover()}
+              onClick={() => {
+                audioManager.playConfirm();
+                chronosStore.setExperienceMode('story');
+              }}
               className={`rounded-full px-3 py-1 font-cinzel text-[10px] font-semibold tracking-wider transition ${
                 experienceMode === 'story'
                   ? 'border border-[#D4AF37] bg-[#D4AF37]/25 text-[#FFE8B5] shadow-[0_0_10px_rgba(212,175,55,0.3)]'
@@ -174,7 +183,11 @@ export function CityUI({
             </button>
             <button
               type="button"
-              onClick={() => chronosStore.setExperienceMode('explore')}
+              onMouseEnter={() => audioManager.playHover()}
+              onClick={() => {
+                audioManager.playConfirm();
+                chronosStore.setExperienceMode('explore');
+              }}
               className={`rounded-full px-3 py-1 font-cinzel text-[10px] font-semibold tracking-wider transition ${
                 experienceMode === 'explore'
                   ? 'border border-cyan-400 bg-cyan-500/25 text-cyan-200 shadow-[0_0_12px_rgba(0,240,255,0.4)]'
@@ -188,7 +201,11 @@ export function CityUI({
           {/* Temporal Echoes Archive Pill */}
           <button
             type="button"
-            onClick={() => chronosStore.setIsJournalOpen(true)}
+            onMouseEnter={() => audioManager.playHover()}
+            onClick={() => {
+              audioManager.playEcho();
+              chronosStore.setIsJournalOpen(true);
+            }}
             className="hidden sm:flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-950/30 hover:bg-cyan-900/40 px-3.5 py-1.5 backdrop-blur-md transition shadow-[0_0_12px_rgba(0,240,255,0.2)] focus:outline-none"
             title="Open Temporal Echo Archives"
           >
@@ -201,7 +218,11 @@ export function CityUI({
           {/* Paradox Finale Gateway Trigger Pill */}
           <button
             type="button"
-            onClick={() => chronosStore.startParadoxFinale()}
+            onMouseEnter={() => audioManager.playHover()}
+            onClick={() => {
+              audioManager.playFinaleSwell();
+              chronosStore.startParadoxFinale();
+            }}
             className="flex items-center gap-2 rounded-full border border-[#D4AF37]/70 bg-[#D4AF37]/15 hover:bg-[#D4AF37]/30 px-3.5 py-1.5 backdrop-blur-md transition shadow-[0_0_15px_rgba(212,175,55,0.35)] focus:outline-none"
             title="Initiate Phase 09 Paradox Finale"
           >
@@ -215,7 +236,11 @@ export function CityUI({
         {/* Return to Chamber Button */}
         <button
           type="button"
-          onClick={onReturnToChamber}
+          onMouseEnter={() => audioManager.playHover()}
+          onClick={() => {
+            audioManager.playWhoosh();
+            onReturnToChamber();
+          }}
           className="group relative flex items-center gap-2 rounded-full border border-[#D4AF37]/50 bg-[#08090D]/80 px-4 py-2 font-cinzel text-xs font-semibold tracking-[0.2em] text-[#F5F3ED] shadow-[0_0_15px_rgba(0,0,0,0.8)] backdrop-blur-md transition-all duration-300 hover:border-[#D4AF37] hover:bg-[#D4AF37]/20 hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
         >
           <span className="inline-block transition-transform duration-300 group-hover:-translate-x-1">
@@ -316,7 +341,11 @@ export function CityUI({
                   <button
                     key={station.id}
                     type="button"
-                    onClick={() => onSelectSegment(station.id)}
+                    onMouseEnter={() => audioManager.playHover()}
+                    onClick={() => {
+                      audioManager.playConfirm();
+                      onSelectSegment(station.id);
+                    }}
                     className={`relative whitespace-nowrap rounded-full px-3 sm:px-4 py-1.5 font-cinzel text-[10px] sm:text-xs tracking-[0.15em] transition-all duration-300 focus:outline-none focus:ring-1 focus:ring-[#D4AF37] ${
                       isActive
                         ? 'border border-[#D4AF37] bg-[#D4AF37]/25 font-bold text-[#FFE8B5] shadow-[0_0_12px_rgba(212,175,55,0.3)]'
@@ -364,7 +393,11 @@ export function CityUI({
                   <button
                     key={d.id}
                     type="button"
-                    onClick={() => chronosStore.setExploreDistrict(d.id)}
+                    onMouseEnter={() => audioManager.playHover()}
+                    onClick={() => {
+                      audioManager.playConfirm();
+                      chronosStore.setExploreDistrict(d.id);
+                    }}
                     className={`relative whitespace-nowrap rounded-full px-3 sm:px-4 py-1.5 font-cinzel text-[10px] sm:text-xs tracking-[0.15em] transition-all duration-300 focus:outline-none focus:ring-1 focus:ring-cyan-400 ${
                       isActive
                         ? 'border border-cyan-400 bg-cyan-500/25 font-bold text-cyan-200 shadow-[0_0_12px_rgba(0,240,255,0.4)]'
@@ -381,7 +414,11 @@ export function CityUI({
             <div className="flex items-center gap-2.5">
               <button
                 type="button"
-                onClick={() => chronosStore.toggleTimeFreeze()}
+                onMouseEnter={() => audioManager.playHover()}
+                onClick={() => {
+                  audioManager.playConfirm();
+                  chronosStore.toggleTimeFreeze();
+                }}
                 className={`flex items-center gap-2 rounded-full border px-4 py-1.5 font-cinzel text-[10px] sm:text-[11px] tracking-wider transition ${
                   isTimeFrozen
                     ? 'border-cyan-300 bg-cyan-500/35 text-cyan-100 shadow-[0_0_15px_rgba(0,240,255,0.6)] animate-pulse font-bold'
@@ -393,7 +430,9 @@ export function CityUI({
 
               <button
                 type="button"
+                onMouseEnter={() => audioManager.playHover()}
                 onClick={() => {
+                  audioManager.playEcho();
                   const currentDistrictConfig = EXPLORE_DISTRICTS.find((d) => d.id === exploreDistrict);
                   if (currentDistrictConfig) {
                     chronosStore.openTemporalLens(currentDistrictConfig.landmarkId);

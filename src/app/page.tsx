@@ -22,22 +22,15 @@ import { ObserverTransmissionHUD } from '@/components/ui/ObserverTransmissionHUD
 import { ParadoxSequenceHUD } from '@/components/ui/ParadoxSequenceHUD';
 import { FinalChoiceModal } from '@/components/ui/FinalChoiceModal';
 import { EpilogueOverlay } from '@/components/ui/EpilogueOverlay';
+import { CinematicLoadingScreen } from '@/components/ui/CinematicLoadingScreen';
+import { audioManager } from '@/lib/audioManager';
 
 // Dynamically import Scene to eliminate SSR hydration discrepancies with WebGL Canvas
 const Scene = dynamic(
   () => import('@/components/canvas/Scene').then((mod) => mod.Scene),
   {
     ssr: false,
-    loading: () => (
-      <div className="fixed inset-0 flex items-center justify-center bg-[#08090D] z-0">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 rounded-full border border-amber-500/30 border-t-amber-400 animate-spin" />
-          <span className="font-mono text-[10px] tracking-[0.3em] text-amber-300/70 uppercase">
-            CALIBRATING CHRONOS CORE...
-          </span>
-        </div>
-      </div>
-    ),
+    loading: () => <CinematicLoadingScreen />,
   }
 );
 
@@ -212,8 +205,23 @@ export default function ChronosPage() {
     };
   }, []);
 
+  // Synchronize dynamic ambient background soundscape based on worldMode
+  useEffect(() => {
+    if (worldMode === 'city') {
+      audioManager.playAmbient('city', 1500);
+    } else if (worldMode === 'chamber') {
+      audioManager.playAmbient('chamber', 1500);
+    } else if (
+      worldMode === 'transitioning_to_city' ||
+      worldMode === 'transitioning_to_chamber'
+    ) {
+      audioManager.playWhoosh();
+    }
+  }, [worldMode]);
+
   // Return from Aeternum to the ancient Chamber
   const handleReturnToChamber = useCallback(() => {
+    audioManager.playWhoosh();
     if (activeTimeline.current) {
       activeTimeline.current.kill();
     }
@@ -291,6 +299,7 @@ export default function ChronosPage() {
 
     // Step B: Engage Temporal Tunnel Vortex & Traverse into Aeternum
     tl.call(() => {
+      audioManager.playWhoosh();
       chronosStore.setWorldMode('transitioning_to_city');
     });
 

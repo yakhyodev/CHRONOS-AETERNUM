@@ -15,6 +15,7 @@ import {
 import { isWebGLAvailable } from '../src/lib/webglDetect';
 import { getChapter06Content } from '../src/types/phase08';
 import { PARADOX_SEQUENCES, ENDINGS_CONFIG } from '../src/types/phase09';
+import { audioManager } from '../src/lib/audioManager';
 
 describe('CHRONOS — Aeternum State & Timeline Engine', () => {
   beforeEach(() => {
@@ -841,6 +842,70 @@ describe('CHRONOS — Aeternum State & Timeline Engine', () => {
       expect(Object.keys(ENDINGS_CONFIG)).toEqual(['restore_time', 'explore_unknown']);
       expect(ENDINGS_CONFIG.restore_time.title).toBe('RESTORE TIME');
       expect(ENDINGS_CONFIG.explore_unknown.title).toBe('EXPLORE THE UNKNOWN');
+    });
+  });
+
+  describe('Phase 10: Cinematic Audio Manager & Sound Controls', () => {
+    it('initializes AudioManager with default mixer levels', () => {
+      expect(audioManager.masterVolume).toBeGreaterThan(0);
+      expect(audioManager.ambienceVolume).toBeGreaterThan(0);
+      expect(audioManager.sfxVolume).toBeGreaterThan(0);
+    });
+
+    it('toggles audio mute state cleanly', () => {
+      const initialMute = audioManager.isMuted;
+      audioManager.toggleMute();
+      expect(audioManager.isMuted).toBe(!initialMute);
+      audioManager.toggleMute();
+      expect(audioManager.isMuted).toBe(initialMute);
+    });
+
+    it('clamps volume inputs between 0 and 1 safely', () => {
+      audioManager.setMasterVolume(1.5);
+      expect(audioManager.masterVolume).toBe(1.0);
+
+      audioManager.setMasterVolume(-0.5);
+      expect(audioManager.masterVolume).toBe(0.0);
+
+      audioManager.setMasterVolume(0.8);
+      expect(audioManager.masterVolume).toBe(0.8);
+
+      audioManager.setAmbienceVolume(2.0);
+      expect(audioManager.ambienceVolume).toBe(1.0);
+
+      audioManager.setAmbienceVolume(0.65);
+      expect(audioManager.ambienceVolume).toBe(0.65);
+
+      audioManager.setSfxVolume(1.2);
+      expect(audioManager.sfxVolume).toBe(1.0);
+
+      audioManager.setSfxVolume(0.75);
+      expect(audioManager.sfxVolume).toBe(0.75);
+    });
+
+    it('supports subscription listeners on audio state changes', () => {
+      let notified = false;
+      const unsubscribe = audioManager.subscribe(() => {
+        notified = true;
+      });
+
+      audioManager.setMasterVolume(0.9);
+      expect(notified).toBe(true);
+
+      notified = false;
+      unsubscribe();
+      audioManager.setMasterVolume(0.8);
+      expect(notified).toBe(false);
+    });
+
+    it('handles rate-limited cue invocation without errors in headless mode', () => {
+      expect(() => {
+        audioManager.playHover();
+        audioManager.playConfirm();
+        audioManager.playWhoosh();
+        audioManager.playEcho();
+        audioManager.playFinaleSwell();
+      }).not.toThrow();
     });
   });
 });

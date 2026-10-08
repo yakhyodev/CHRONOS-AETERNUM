@@ -4,6 +4,8 @@ import Image from 'next/image';
 import { PROJECT_STRINGS, type CinematicShotId, CINEMATIC_SHOTS } from '@/lib/constants';
 import type { ActivationState } from '@/lib/chronosStore';
 import { ShotNavigator } from './ShotNavigator';
+import { AudioControlsHUD } from './AudioControlsHUD';
+import { audioManager } from '@/lib/audioManager';
 
 interface CinematicUIProps {
   activationState: ActivationState;
@@ -58,8 +60,9 @@ export function CinematicUI({
           </span>
         </div>
 
-        {/* Minimal telemetry / Shot status */}
-        <div className="flex items-center gap-4 font-mono text-[11px] tracking-widest text-zinc-400">
+        {/* Minimal telemetry / Shot status & Audio HUD */}
+        <div className="flex items-center gap-3 font-mono text-[11px] tracking-widest text-zinc-400">
+          <AudioControlsHUD />
           <div className="hidden sm:flex items-center gap-2 rounded border border-white/10 bg-[#08090D]/60 px-3 py-1 backdrop-blur-sm">
             <span
               className={`h-1.5 w-1.5 rounded-full ${
@@ -97,10 +100,15 @@ export function CinematicUI({
           <button
             type="button"
             disabled={isBusy}
-            onClick={onActivate}
+            onMouseEnter={() => audioManager.playHover()}
+            onClick={() => {
+              audioManager.playConfirm();
+              onActivate();
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
+                audioManager.playConfirm();
                 onActivate();
               }
             }}

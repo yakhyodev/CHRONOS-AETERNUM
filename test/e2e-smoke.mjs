@@ -151,9 +151,51 @@ async function runSmokeTests() {
     if (endingRoute.statusCode !== 200) {
       throw new Error(`Ending query routing failed with ${endingRoute.statusCode}`);
     }
-    console.log('  ✓ Phase 09 Paradox Finale assets, query routing & endings verified');
+    // 12. Test Phase 10 Audio, UI Polish Assets & Manifest
+    console.log('[12/12] Verifying Phase 10 cinematic audio files, UI references & manifest...');
+    const manifest10 = await checkUrl(`${baseUrl}/chronos/phase10/manifest.json`);
+    if (manifest10.statusCode !== 200) {
+      throw new Error(`Phase 10 manifest.json returned ${manifest10.statusCode}`);
+    }
+    const audioChamber = await checkUrl(`${baseUrl}/chronos/phase10/audio/01-chamber-drone.wav`);
+    if (audioChamber.statusCode !== 200) {
+      throw new Error(`Phase 10 01-chamber-drone.wav returned ${audioChamber.statusCode}`);
+    }
+    const audioCity = await checkUrl(`${baseUrl}/chronos/phase10/audio/02-aeternum-city-ambience.wav`);
+    if (audioCity.statusCode !== 200) {
+      throw new Error(`Phase 10 02-aeternum-city-ambience.wav returned ${audioCity.statusCode}`);
+    }
+    const audioWhoosh = await checkUrl(`${baseUrl}/chronos/phase10/audio/03-temporal-whoosh.wav`);
+    if (audioWhoosh.statusCode !== 200) {
+      throw new Error(`Phase 10 03-temporal-whoosh.wav returned ${audioWhoosh.statusCode}`);
+    }
+    const audioEcho = await checkUrl(`${baseUrl}/chronos/phase10/audio/04-echo-chime.wav`);
+    if (audioEcho.statusCode !== 200) {
+      throw new Error(`Phase 10 04-echo-chime.wav returned ${audioEcho.statusCode}`);
+    }
+    const audioSwell = await checkUrl(`${baseUrl}/chronos/phase10/audio/05-finale-swell.wav`);
+    if (audioSwell.statusCode !== 200) {
+      throw new Error(`Phase 10 05-finale-swell.wav returned ${audioSwell.statusCode}`);
+    }
+    const audioHover = await checkUrl(`${baseUrl}/chronos/phase10/audio/06-ui-hover.wav`);
+    if (audioHover.statusCode !== 200) {
+      throw new Error(`Phase 10 06-ui-hover.wav returned ${audioHover.statusCode}`);
+    }
+    const audioConfirm = await checkUrl(`${baseUrl}/chronos/phase10/audio/07-button-confirm.wav`);
+    if (audioConfirm.statusCode !== 200) {
+      throw new Error(`Phase 10 07-button-confirm.wav returned ${audioConfirm.statusCode}`);
+    }
+    const audioLoading = await checkUrl(`${baseUrl}/chronos/phase10/audio/08-loading-hum.wav`);
+    if (audioLoading.statusCode !== 200) {
+      throw new Error(`Phase 10 08-loading-hum.wav returned ${audioLoading.statusCode}`);
+    }
+    const polishArt = await checkUrl(`${baseUrl}/chronos/phase10/images/00-phase10-audio-ui-board.jpg`);
+    if (polishArt.statusCode !== 200) {
+      throw new Error(`Phase 10 polish reference image returned ${polishArt.statusCode}`);
+    }
+    console.log('  ✓ Phase 10 Cinematic Audio cues & UI polish references verified');
 
-    console.log('\nALL 11 E2E SMOKE TESTS PASSED CLEANLY.\n');
+    console.log('\nALL 12 E2E SMOKE TESTS PASSED CLEANLY.\n');
     process.exit(0);
   } catch (err) {
     console.error('Smoke Test Failed:', err.message);

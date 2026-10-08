@@ -8,6 +8,7 @@ import {
 } from '@/types/phase05';
 import { getTemporalMorphState } from '@/types/phase06';
 import { chronosStore } from '@/lib/chronosStore';
+import { audioManager } from '@/lib/audioManager';
 
 export function TimeScrubber() {
   const activeEra = useSyncExternalStore(
@@ -39,6 +40,7 @@ export function TimeScrubber() {
       if (!trackRef.current) return;
       const rect = trackRef.current.getBoundingClientRect();
       const progress = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      audioManager.playWhoosh();
       chronosStore.setTimelinePosition(progress);
     };
 
@@ -63,15 +65,19 @@ export function TimeScrubber() {
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
       e.preventDefault();
+      audioManager.playWhoosh();
       chronosStore.navigateEra('next');
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
       e.preventDefault();
+      audioManager.playWhoosh();
       chronosStore.navigateEra('prev');
     } else if (e.key === 'Home') {
       e.preventDefault();
+      audioManager.playWhoosh();
       chronosStore.setActiveEra('the-origin');
     } else if (e.key === 'End') {
       e.preventDefault();
+      audioManager.playWhoosh();
       chronosStore.setActiveEra('the-next-age');
     }
   }, []);
@@ -141,8 +147,11 @@ export function TimeScrubber() {
             <button
               key={eId}
               type="button"
+              onMouseEnter={() => audioManager.playHover()}
               onClick={(evt) => {
                 evt.stopPropagation();
+                audioManager.playConfirm();
+                audioManager.playWhoosh();
                 chronosStore.setActiveEra(eId);
               }}
               className="absolute -translate-x-1/2 flex flex-col items-center focus:outline-none z-10"
