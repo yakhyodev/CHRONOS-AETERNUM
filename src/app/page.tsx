@@ -129,6 +129,29 @@ export default function ChronosPage() {
       chronosStore.setQualityPreset(urlQuality);
     }
 
+    const urlEra = params.get('era');
+    if (urlEra) {
+      const eraMap: Record<string, string> = {
+        'the-origin': 'the-origin',
+        '-1200': 'the-origin',
+        '1200': 'the-origin',
+        '1200bce': 'the-origin',
+        '1200-bce': 'the-origin',
+        'the-kingdom': 'the-kingdom',
+        '1450': 'the-kingdom',
+        'the-machine': 'the-machine',
+        '1890': 'the-machine',
+        'the-present': 'the-present',
+        '2026': 'the-present',
+        'the-next-age': 'the-next-age',
+        '2200': 'the-next-age',
+      };
+      const mappedEra = eraMap[urlEra.toLowerCase()] as any;
+      if (mappedEra) {
+        chronosStore.setActiveEra(mappedEra);
+      }
+    }
+
     return () => {
       mediaQuery.removeEventListener('change', handleMotionChange);
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);

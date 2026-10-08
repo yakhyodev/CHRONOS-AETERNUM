@@ -6,6 +6,12 @@ import {
   CAMERA_JOURNEY_WAYPOINTS,
   CAMERA_LOOKAT_WAYPOINTS,
 } from '../src/types/phase04';
+import {
+  TEMPORAL_ERAS,
+  ORDERED_ERAS,
+  getEraFromTimelinePosition,
+  getTimelineStopFromEra,
+} from '../src/types/phase05';
 import { isWebGLAvailable } from '../src/lib/webglDetect';
 
 describe('CHRONOS — Aeternum State & Timeline Engine', () => {
@@ -16,6 +22,7 @@ describe('CHRONOS — Aeternum State & Timeline Engine', () => {
     chronosStore.setActivationState('idle');
     chronosStore.setCurrentShot('shot-01');
     chronosStore.setCurrentSegment('grand-arrival');
+    chronosStore.setActiveEra('the-present');
     chronosStore.setQualityPreset('high');
     chronosStore.setReducedMotion(false);
     chronosStore.setIsTransitioning(false);
@@ -184,21 +191,13 @@ describe('CHRONOS — Aeternum State & Timeline Engine', () => {
     });
 
     it('correctly maps journey progress to segments across all 5 districts', () => {
-      // 0.0 -> Grand Arrival (Chronos Plaza)
       expect(chronosStore.getSegmentFromProgress(0.0).id).toBe('grand-arrival');
-      // 0.20 -> Into the Old World (Old District)
       expect(chronosStore.getSegmentFromProgress(0.20).id).toBe('old-district');
-      // 0.35 -> The River Reveal (River Crossing)
       expect(chronosStore.getSegmentFromProgress(0.35).id).toBe('river-reveal');
-      // 0.50 -> Above the Water (River Crossing)
       expect(chronosStore.getSegmentFromProgress(0.50).id).toBe('above-water');
-      // 0.65 -> Machine District (Industrial Quarter)
       expect(chronosStore.getSegmentFromProgress(0.65).id).toBe('machine-district');
-      // 0.75 -> Ascent to Observatory (Northern Hills)
       expect(chronosStore.getSegmentFromProgress(0.75).id).toBe('ascent-observatory');
-      // 0.88 -> The Observatory
       expect(chronosStore.getSegmentFromProgress(0.88).id).toBe('the-observatory');
-      // 0.98 -> Return to Chronos (Chronos Plaza)
       expect(chronosStore.getSegmentFromProgress(0.98).id).toBe('return-chronos');
     });
 
@@ -234,6 +233,122 @@ describe('CHRONOS — Aeternum State & Timeline Engine', () => {
 
       chronosStore.setJourneyProgress(0.42);
       expect(chronosStore.journeyProgress).toBe(0.42);
+    });
+  });
+
+  describe('Phase 05 — Temporal Engine & Five Historical Eras', () => {
+    it('defines all 5 official historical eras with canonical years and atmosphere', () => {
+      expect(ORDERED_ERAS.length).toBe(5);
+      expect(ORDERED_ERAS).toEqual([
+        'the-origin',
+        'the-kingdom',
+        'the-machine',
+        'the-present',
+        'the-next-age',
+      ]);
+
+      expect(TEMPORAL_ERAS['the-origin'].year).toBe(-1200);
+      expect(TEMPORAL_ERAS['the-kingdom'].year).toBe(1450);
+      expect(TEMPORAL_ERAS['the-machine'].year).toBe(1890);
+      expect(TEMPORAL_ERAS['the-present'].year).toBe(2026);
+      expect(TEMPORAL_ERAS['the-next-age'].year).toBe(2200);
+
+      ORDERED_ERAS.forEach((eId) => {
+        const config = TEMPORAL_ERAS[eId];
+        expect(config.landmarkTitle).toBeTruthy();
+        expect(config.landmarkDescription).toBeTruthy();
+        expect(config.atmosphere.skyColor).toBeTruthy();
+        expect(config.atmosphere.sunColor).toBeTruthy();
+        expect(config.atmosphere.fogColor).toBeTruthy();
+        expect(config.atmosphere.fogDensity).toBeGreaterThan(0);
+      });
+    });
+
+    it('verifies normalized timeline stops are evenly spaced from 0.0 to 1.0', () => {
+      expect(getTimelineStopFromEra('the-origin')).toBe(0.0);
+      expect(getTimelineStopFromEra('the-kingdom')).toBe(0.25);
+      expect(getTimelineStopFromEra('the-machine')).toBe(0.50);
+      expect(getTimelineStopFromEra('the-present')).toBe(0.75);
+      expect(getTimelineStopFromEra('the-next-age')).toBe(1.0);
+    });
+
+    it('correctly maps continuous timeline positions to closest historical era', () => {
+      expect(getEraFromTimelinePosition(0.0)).toBe('the-origin');
+      expect(getEraFromTimelinePosition(0.10)).toBe('the-origin');
+      expect(getEraFromTimelinePosition(0.25)).toBe('the-kingdom');
+      expect(getEraFromTimelinePosition(0.50)).toBe('the-machine');
+      expect(getEraFromTimelinePosition(0.75)).toBe('the-present');
+      expect(getEraFromTimelinePosition(0.95)).toBe('the-next-age');
+      expect(getEraFromTimelinePosition(1.0)).toBe('the-next-age');
+    });
+
+    it('supports direct era selection and timeline position synchronization', () => {
+      chronosStore.setActiveEra('the-kingdom');
+      expect(chronosStore.activeEra).toBe('the-kingdom');
+      expect(chronosStore.timelinePosition).toBe(0.25);
+
+      chronosStore.setActiveEra('the-origin');
+      expect(chronosStore.activeEra).toBe('the-origin');
+      expect(chronosStore.timelinePosition).toBe(0.0);
+
+      chronosStore.setActiveEra('the-next-age');
+      expect(chronosStore.activeEra).toBe('the-next-age');
+      expect(chronosStore.timelinePosition).toBe(1.0);
+    });
+
+    it('supports forward and reverse era navigation stepping', () => {
+      chronosStore.setActiveEra('the-origin');
+      chronosStore.navigateEra('next');
+      expect(chronosStore.activeEra).toBe('the-kingdom');
+
+      chronosStore.navigateEra('next');
+      expect(chronosStore.activeEra).toBe('the-machine');
+
+      chronosStore.navigateEra('next');
+      expect(chronosStore.activeEra).toBe('the-present');
+
+      chronosStore.navigateEra('next');
+      expect(chronosStore.activeEra).toBe('the-next-age');
+
+      // Clamped at end
+      chronosStore.navigateEra('next');
+      expect(chronosStore.activeEra).toBe('the-next-age');
+
+      // Reverse navigation
+      chronosStore.navigateEra('prev');
+      expect(chronosStore.activeEra).toBe('the-present');
+
+      chronosStore.navigateEra('prev');
+      expect(chronosStore.activeEra).toBe('the-machine');
+    });
+
+    it('preserves camera journey progress independently when era changes', () => {
+      // Simulate user at 65% through the city flight in 2026
+      chronosStore.setJourneyProgress(0.65);
+      chronosStore.setCurrentSegment('machine-district');
+      expect(chronosStore.journeyProgress).toBe(0.65);
+
+      // Travel back to 1450 CE
+      chronosStore.setActiveEra('the-kingdom');
+      expect(chronosStore.activeEra).toBe('the-kingdom');
+      // Verify camera flight position is completely undisturbed
+      expect(chronosStore.journeyProgress).toBe(0.65);
+      expect(chronosStore.currentSegment).toBe('machine-district');
+
+      // Travel to 1200 BCE
+      chronosStore.setActiveEra('the-origin');
+      expect(chronosStore.activeEra).toBe('the-origin');
+      expect(chronosStore.journeyProgress).toBe(0.65);
+    });
+
+    it('handles rapid repeated era transitions stably without corruption', () => {
+      for (let i = 0; i < 40; i++) {
+        const era = ORDERED_ERAS[i % 5];
+        chronosStore.setActiveEra(era);
+      }
+      chronosStore.setActiveEra('the-present');
+      expect(chronosStore.activeEra).toBe('the-present');
+      expect(chronosStore.timelinePosition).toBe(0.75);
     });
   });
 });

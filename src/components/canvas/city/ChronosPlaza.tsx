@@ -1,16 +1,27 @@
 'use client';
 
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useSyncExternalStore } from 'react';
 import * as THREE from 'three';
+import { EraLandmark } from './EraLandmark';
+import { chronosStore } from '@/lib/chronosStore';
+import { TEMPORAL_ERAS } from '@/types/phase05';
+import type { HistoricalEraId } from '@/types/phase03';
 
 export function ChronosPlaza() {
+  const activeEra = useSyncExternalStore(
+    (cb) => chronosStore.subscribe(cb),
+    () => chronosStore.activeEra,
+    () => 'the-present' as HistoricalEraId
+  );
+
+  const eraConfig = TEMPORAL_ERAS[activeEra] || TEMPORAL_ERAS['the-present'];
+
   const {
     sandstoneMat,
     darkStoneMat,
     roofTerracottaMat,
     roofSlateMat,
     goldOrnamentMat,
-    clockDialMat,
     lampGlowMat,
     foliageMat,
   } = useMemo(() => {
@@ -40,14 +51,8 @@ export function ChronosPlaza() {
         roughness: 0.3,
         metalness: 0.85,
       }),
-      clockDialMat: new THREE.MeshStandardMaterial({
-        color: '#FFF2D6',
-        emissive: '#FFB84D',
-        emissiveIntensity: 1.8,
-        roughness: 0.2,
-      }),
       lampGlowMat: new THREE.MeshBasicMaterial({
-        color: '#FFAA33',
+        color: eraConfig.atmosphere.accentColor,
       }),
       foliageMat: new THREE.MeshStandardMaterial({
         color: '#2F482F',
@@ -55,7 +60,7 @@ export function ChronosPlaza() {
         metalness: 0.05,
       }),
     };
-  }, []);
+  }, [eraConfig.atmosphere.accentColor]);
 
   useEffect(() => {
     return () => {
@@ -64,7 +69,6 @@ export function ChronosPlaza() {
       roofTerracottaMat.dispose();
       roofSlateMat.dispose();
       goldOrnamentMat.dispose();
-      clockDialMat.dispose();
       lampGlowMat.dispose();
       foliageMat.dispose();
     };
@@ -74,7 +78,6 @@ export function ChronosPlaza() {
     roofTerracottaMat,
     roofSlateMat,
     goldOrnamentMat,
-    clockDialMat,
     lampGlowMat,
     foliageMat,
   ]);
@@ -104,7 +107,7 @@ export function ChronosPlaza() {
   }, []);
 
   return (
-    <group>
+    <group name="ChronosPlaza">
       {/* ================================================================== */}
       {/* 1. CIRCULAR CIVIC PLAZA PAVING TIERS */}
       {/* ================================================================== */}
@@ -129,95 +132,27 @@ export function ChronosPlaza() {
         <ringGeometry args={[17.2, 17.6, 48]} />
       </mesh>
 
-      {/* Central Plaza Bronze Fountain Monument */}
-      <group position={[0, 0.4, -106]}>
-        <mesh position={[0, 0.6, 0]} receiveShadow castShadow material={sandstoneMat}>
-          <cylinderGeometry args={[3.8, 4.2, 1.2, 24]} />
-        </mesh>
-        <mesh position={[0, 2.2, 0]} receiveShadow castShadow material={darkStoneMat}>
-          <cylinderGeometry args={[1.2, 1.5, 2.0, 16]} />
-        </mesh>
-        <mesh position={[0, 4.0, 0]} castShadow material={goldOrnamentMat}>
-          <sphereGeometry args={[0.9, 16, 16]} />
-        </mesh>
-      </group>
+      {/* Central Plaza Bronze Fountain Monument (Hidden in 1200 BCE, adapted in others) */}
+      {activeEra !== 'the-origin' && (
+        <group position={[0, 0.4, -106]}>
+          <mesh position={[0, 0.6, 0]} receiveShadow castShadow material={sandstoneMat}>
+            <cylinderGeometry args={[3.8, 4.2, 1.2, 24]} />
+          </mesh>
+          <mesh position={[0, 2.2, 0]} receiveShadow castShadow material={darkStoneMat}>
+            <cylinderGeometry args={[1.2, 1.5, 2.0, 16]} />
+          </mesh>
+          <mesh position={[0, 4.0, 0]} castShadow material={goldOrnamentMat}>
+            <sphereGeometry args={[0.9, 16, 16]} />
+          </mesh>
+        </group>
+      )}
 
       {/* ================================================================== */}
-      {/* 2. THE MONUMENTAL CHRONOS CLOCK TOWER */}
+      {/* 2. THE ERA-SPECIFIC MONUMENTAL LANDMARK */}
+      {/* Dynamically swaps between 1200 BCE Sundial, 1450 Belfry, */}
+      {/* 1890 Steam Clock, 2026 Restored Tower, and 2200 Quantum Spire */}
       {/* ================================================================== */}
-      <group position={[0, 0, -124]}>
-        {/* Tier 1: Plinth and Entrance Base (Height: 0 to 12m) */}
-        <mesh position={[0, 6, 0]} castShadow receiveShadow material={sandstoneMat}>
-          <boxGeometry args={[13, 12, 13]} />
-        </mesh>
-        {/* Tier 1 Portico Buttresses */}
-        {[-7, 7].map((x) =>
-          [-7, 7].map((z) => (
-            <mesh key={`buttress-${x}-${z}`} position={[x, 5.5, z]} castShadow material={darkStoneMat}>
-              <boxGeometry args={[2.5, 11, 2.5]} />
-            </mesh>
-          ))
-        )}
-
-        {/* Tier 2: Tower Shaft with Gothic Pilasters (Height: 12 to 34m) */}
-        <mesh position={[0, 23, 0]} castShadow receiveShadow material={sandstoneMat}>
-          <boxGeometry args={[10, 22, 10]} />
-        </mesh>
-        {/* Shaft Fluted Corner Buttresses */}
-        {[-5.4, 5.4].map((x) =>
-          [-5.4, 5.4].map((z) => (
-            <mesh key={`shaft-corner-${x}-${z}`} position={[x, 23, z]} castShadow material={darkStoneMat}>
-              <boxGeometry args={[1.6, 22, 1.6]} />
-            </mesh>
-          ))
-        )}
-
-        {/* Tier 3: Clock Chamber (Height: 34 to 42m) */}
-        <mesh position={[0, 38, 0]} castShadow receiveShadow material={sandstoneMat}>
-          <boxGeometry args={[11.2, 8, 11.2]} />
-        </mesh>
-        {/* Clock Dials on 4 Faces */}
-        {/* South Dial (Facing Plaza Entrance) */}
-        <mesh position={[0, 38, 5.65]} rotation={[Math.PI / 2, 0, 0]} material={clockDialMat}>
-          <cylinderGeometry args={[3.2, 3.2, 0.15, 32]} />
-        </mesh>
-        <mesh position={[0, 38, 5.75]} material={darkStoneMat}>
-          <boxGeometry args={[0.2, 2.8, 0.1]} />
-        </mesh>
-        <mesh position={[0, 38, 5.75]} material={darkStoneMat}>
-          <boxGeometry args={[2.0, 0.2, 0.1]} />
-        </mesh>
-
-        {/* North Dial */}
-        <mesh position={[0, 38, -5.65]} rotation={[Math.PI / 2, 0, 0]} material={clockDialMat}>
-          <cylinderGeometry args={[3.2, 3.2, 0.15, 32]} />
-        </mesh>
-        {/* East Dial */}
-        <mesh position={[5.65, 38, 0]} rotation={[0, 0, Math.PI / 2]} material={clockDialMat}>
-          <cylinderGeometry args={[3.2, 3.2, 0.15, 32]} />
-        </mesh>
-        {/* West Dial */}
-        <mesh position={[-5.65, 38, 0]} rotation={[0, 0, Math.PI / 2]} material={clockDialMat}>
-          <cylinderGeometry args={[3.2, 3.2, 0.15, 32]} />
-        </mesh>
-
-        {/* Tier 4: Belfry Arcade with Arched Colonnade (Height: 42 to 49m) */}
-        <mesh position={[0, 45.5, 0]} castShadow material={sandstoneMat}>
-          <boxGeometry args={[9.5, 7, 9.5]} />
-        </mesh>
-        <mesh position={[0, 46, 0]} material={goldOrnamentMat}>
-          <cylinderGeometry args={[1.5, 1.8, 2.5, 16]} />
-        </mesh>
-
-        {/* Tier 5: Steep Gothic Spire & Balustrade (Height: 49 to 64m) */}
-        <mesh position={[0, 56.5, 0]} castShadow material={roofSlateMat}>
-          <coneGeometry args={[5.2, 15, 8]} />
-        </mesh>
-        {/* Golden Finial Orb & Spire Tip */}
-        <mesh position={[0, 64.5, 0]} material={goldOrnamentMat}>
-          <sphereGeometry args={[0.8, 16, 16]} />
-        </mesh>
-      </group>
+      <EraLandmark />
 
       {/* ================================================================== */}
       {/* 3. FLANKING CIVIC PALACES (EAST & WEST) */}
@@ -227,11 +162,9 @@ export function ChronosPlaza() {
         <mesh position={[0, 7.5, 0]} castShadow receiveShadow material={sandstoneMat}>
           <boxGeometry args={[16, 15, 28]} />
         </mesh>
-        {/* Mansard Hip Roof */}
         <mesh position={[0, 18, 0]} rotation={[0, Math.PI / 4, 0]} castShadow material={roofTerracottaMat}>
           <coneGeometry args={[12, 7, 4]} />
         </mesh>
-        {/* Columned Arcade Loggia */}
         <mesh position={[6.5, 3, 0]} castShadow material={darkStoneMat}>
           <boxGeometry args={[2.5, 6, 26]} />
         </mesh>
@@ -242,11 +175,9 @@ export function ChronosPlaza() {
         <mesh position={[0, 7.5, 0]} castShadow receiveShadow material={sandstoneMat}>
           <boxGeometry args={[16, 15, 28]} />
         </mesh>
-        {/* Mansard Hip Roof */}
         <mesh position={[0, 18, 0]} rotation={[0, Math.PI / 4, 0]} castShadow material={roofSlateMat}>
           <coneGeometry args={[12, 7, 4]} />
         </mesh>
-        {/* Columned Arcade Loggia */}
         <mesh position={[-6.5, 3, 0]} castShadow material={darkStoneMat}>
           <boxGeometry args={[2.5, 6, 26]} />
         </mesh>
@@ -266,16 +197,18 @@ export function ChronosPlaza() {
         </group>
       ))}
 
-      {treePositions.map(([x, y, z], idx) => (
-        <group key={`plaza-tree-${idx}`} position={[x, y + 0.3, z]}>
-          <mesh position={[0, 1.2, 0]} material={darkStoneMat}>
-            <cylinderGeometry args={[0.2, 0.3, 2.4, 8]} />
-          </mesh>
-          <mesh position={[0, 4.5, 0]} castShadow material={foliageMat}>
-            <coneGeometry args={[1.5, 5.5, 7]} />
-          </mesh>
-        </group>
-      ))}
+      {/* Trees (shown for eras with vegetation) */}
+      {activeEra !== 'the-machine' &&
+        treePositions.map(([x, y, z], idx) => (
+          <group key={`plaza-tree-${idx}`} position={[x, y + 0.3, z]}>
+            <mesh position={[0, 1.2, 0]} material={darkStoneMat}>
+              <cylinderGeometry args={[0.2, 0.3, 2.4, 8]} />
+            </mesh>
+            <mesh position={[0, 4.5, 0]} castShadow material={foliageMat}>
+              <coneGeometry args={[1.5, 5.5, 7]} />
+            </mesh>
+          </group>
+        ))}
     </group>
   );
 }

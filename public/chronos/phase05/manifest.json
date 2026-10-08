@@ -1,0 +1,33 @@
+{
+  "project": "CHRONOS \u2014 Aeternum",
+  "phase": "05",
+  "scope": "Temporal Engine and era-selection foundation; Phase 06 implements full Time Morph",
+  "reference_only": true,
+  "eras": [
+    {
+      "id": "the-origin",
+      "year": -1200,
+      "asset": "01-the-origin-1200-bce.jpg"
+    },
+    {
+      "id": "the-kingdom",
+      "year": 1450,
+      "asset": "02-the-kingdom-1450.jpg"
+    },
+    {
+      "id": "the-machine",
+      "year": 1890,
+      "asset": "03-the-machine-1890.jpg"
+    },
+    {
+      "id": "the-present",
+      "year": 2026,
+      "asset": "04-the-present-2026.jpg"
+    },
+    {
+      "id": "the-next-age",
+      "year": 2200,
+      "asset": "05-the-next-age-2200.jpg"
+    }
+  ]
+}

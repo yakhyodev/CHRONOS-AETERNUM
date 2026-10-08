@@ -9,7 +9,8 @@ import {
   type QualityPreset,
   type WorldMode,
 } from '@/lib/chronosStore';
-import type { CityViewId } from '@/types/phase03';
+import type { CityViewId, HistoricalEraId } from '@/types/phase03';
+import { TEMPORAL_ERAS } from '@/types/phase05';
 import { isWebGLAvailable } from '@/lib/webglDetect';
 import { ChamberEnvironment } from './chamber/ChamberEnvironment';
 import { ChronosCore } from './core/ChronosCore';
@@ -54,6 +55,12 @@ export function Scene({
     () => 'grand-arrival' as CityViewId
   );
 
+  const activeEra = useSyncExternalStore(
+    (cb) => chronosStore.subscribe(cb),
+    () => chronosStore.activeEra,
+    () => 'the-present' as HistoricalEraId
+  );
+
   useEffect(() => {
     setMounted(true);
     setWebglSupported(isWebGLAvailable());
@@ -83,6 +90,8 @@ export function Scene({
     worldMode === 'transitioning_to_city' ||
     worldMode === 'transitioning_to_chamber';
 
+  const eraConfig = TEMPORAL_ERAS[activeEra] || TEMPORAL_ERAS['the-present'];
+
   return (
     <div className={`relative w-full h-full ${className}`}>
       <Canvas
@@ -96,10 +105,10 @@ export function Scene({
         dpr={qualityConfig.dpr}
         shadows={qualityConfig.shadows}
       >
-        {/* Dynamic Background: Void Black in chamber, Warm Sunset in city */}
+        {/* Dynamic Background: Void Black in chamber, Era Sky in city */}
         <color
           attach="background"
-          args={[isCityActive ? '#211A16' : CHRONOS_PALETTE.voidBlack]}
+          args={[isCityActive ? eraConfig.atmosphere.skyColor : CHRONOS_PALETTE.voidBlack]}
         />
 
         {/* Dynamic Camera Rig: Chamber Timeline vs Aeternum City Views */}

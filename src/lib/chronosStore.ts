@@ -1,10 +1,17 @@
 import { CINEMATIC_SHOTS, type CinematicShotId } from './constants';
-import { type CityViewId, CITY_VIEWS } from '../types/phase03';
+import { type CityViewId, CITY_VIEWS, type HistoricalEraId } from '../types/phase03';
 import {
   type CinematicSegmentId,
   CINEMATIC_SEGMENTS,
   type CinematicSegmentConfig,
 } from '../types/phase04';
+import {
+  ORDERED_ERAS,
+  TEMPORAL_ERAS,
+  getEraFromTimelinePosition,
+  getTimelineStopFromEra,
+  type EraTemporalConfig,
+} from '../types/phase05';
 
 export type WorldMode =
   | 'chamber'
@@ -47,10 +54,11 @@ type Listener = () => void;
 
 class ChronosStore {
   // Continuous 3D animation values (read by Three.js render loop without React re-renders)
-  public activationProgress = 0; // 0.0 to 1.0
-  public timelineProgress = 0;   // 0.0 to 1.0 for chamber scroll
-  public portalProgress = 0;     // 0.0 to 1.0 for temporal vortex warp
-  public journeyProgress = 0;    // 0.0 to 1.0 continuous spline progression for Aeternum flight
+  public activationProgress = 0;   // 0.0 to 1.0
+  public timelineProgress = 0;     // 0.0 to 1.0 for chamber scroll
+  public portalProgress = 0;       // 0.0 to 1.0 for temporal vortex warp
+  public journeyProgress = 0;      // 0.0 to 1.0 continuous spline progression for Aeternum flight
+  public transitionProgress = 0;   // 0.0 to 1.0 continuous era blend factor
   
   // Discrete state (notified to React UI on state change)
   public worldMode: WorldMode = 'chamber';
@@ -61,6 +69,13 @@ class ChronosStore {
   public qualityPreset: QualityPreset = 'high';
   public reducedMotion = false;
   public isTransitioning = false;
+
+  // Phase 05 Temporal Engine Core State
+  public activeEra: HistoricalEraId = 'the-present';
+  public targetEra: HistoricalEraId = 'the-present';
+  public isTimeTransitioning = false;
+  public timelinePosition = 0.75; // Default 2026 CE (timelineStop: 0.75)
+  public timeTravelEnabled = true;
 
   private listeners = new Set<Listener>();
 
@@ -151,7 +166,6 @@ class ChronosStore {
   public getProgressFromShot(shotId: CinematicShotId): number {
     const index = CINEMATIC_SHOTS.findIndex((s) => s.id === shotId);
     if (index === -1) return 0;
-    // Position at the start of that shot's interval
     return index / CINEMATIC_SHOTS.length;
   }
 
@@ -190,6 +204,72 @@ class ChronosStore {
   public getProgressFromSegment(segmentId: CinematicSegmentId): number {
     const seg = CINEMATIC_SEGMENTS.find((s) => s.id === segmentId);
     return seg ? seg.progressStart : 0;
+  }
+
+  // ==========================================================================
+  // Phase 05 Temporal Engine Methods
+  // ==========================================================================
+
+  public setActiveEra(era: HistoricalEraId): void {
+    if (this.activeEra !== era) {
+      this.activeEra = era;
+      this.targetEra = era;
+      this.timelinePosition = getTimelineStopFromEra(era);
+      this.notify();
+    }
+  }
+
+  public setTargetEra(era: HistoricalEraId): void {
+    if (this.targetEra !== era) {
+      this.targetEra = era;
+      this.notify();
+    }
+  }
+
+  public setTransitionProgress(val: number): void {
+    this.transitionProgress = Math.max(0, Math.min(1, val));
+  }
+
+  public setIsTimeTransitioning(val: boolean): void {
+    if (this.isTimeTransitioning !== val) {
+      this.isTimeTransitioning = val;
+      this.notify();
+    }
+  }
+
+  public setTimelinePosition(val: number): void {
+    const clamped = Math.max(0, Math.min(1, val));
+    this.timelinePosition = clamped;
+    const derivedEra = getEraFromTimelinePosition(clamped);
+    if (this.activeEra !== derivedEra && !this.isTimeTransitioning) {
+      this.activeEra = derivedEra;
+      this.targetEra = derivedEra;
+      this.notify();
+    }
+  }
+
+  public setTimeTravelEnabled(enabled: boolean): void {
+    if (this.timeTravelEnabled !== enabled) {
+      this.timeTravelEnabled = enabled;
+      this.notify();
+    }
+  }
+
+  public getActiveEraConfig(): EraTemporalConfig {
+    return TEMPORAL_ERAS[this.activeEra] || TEMPORAL_ERAS['the-present'];
+  }
+
+  public getTargetEraConfig(): EraTemporalConfig {
+    return TEMPORAL_ERAS[this.targetEra] || TEMPORAL_ERAS['the-present'];
+  }
+
+  public navigateEra(direction: 'next' | 'prev'): void {
+    const currentIndex = ORDERED_ERAS.indexOf(this.activeEra);
+    if (direction === 'next' && currentIndex < ORDERED_ERAS.length - 1) {
+      this.setActiveEra(ORDERED_ERAS[currentIndex + 1]);
+    } else if (direction === 'prev' && currentIndex > 0) {
+      this.setActiveEra(ORDERED_ERAS[currentIndex - 1]);
+    }
   }
 }
 

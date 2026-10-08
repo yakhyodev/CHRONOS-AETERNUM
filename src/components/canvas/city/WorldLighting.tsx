@@ -1,33 +1,58 @@
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import type { QualityPreset } from '@/lib/chronosStore';
+import { chronosStore } from '@/lib/chronosStore';
+import { TEMPORAL_ERAS } from '@/types/phase05';
+import type { HistoricalEraId } from '@/types/phase03';
 
 interface WorldLightingProps {
   qualityPreset?: QualityPreset;
 }
 
 export function WorldLighting({ qualityPreset = 'high' }: WorldLightingProps) {
+  const activeEra = useSyncExternalStore(
+    (cb) => chronosStore.subscribe(cb),
+    () => chronosStore.activeEra,
+    () => 'the-present' as HistoricalEraId
+  );
+
+  const eraConfig = TEMPORAL_ERAS[activeEra] || TEMPORAL_ERAS['the-present'];
+  const atmosphere = eraConfig.atmosphere;
+
   const isHigh = qualityPreset === 'high';
   const shadowMapSize = isHigh ? 2048 : qualityPreset === 'medium' ? 1024 : 512;
   const enableShadows = qualityPreset !== 'low';
 
-  return (
-    <group>
-      {/* 1. Atmospheric Sunset Ambient Fill */}
-      <ambientLight color="#4A3B32" intensity={0.65} />
+  // Era-specific sun position & directional vectors
+  const sunPosition: [number, number, number] =
+    activeEra === 'the-origin'
+      ? [-140, 45, 60] // Low ancient dawn angle
+      : activeEra === 'the-kingdom'
+      ? [-100, 95, 30] // Medieval morning sun
+      : activeEra === 'the-machine'
+      ? [-130, 50, 50] // Industrial low twilight sun
+      : activeEra === 'the-next-age'
+      ? [-90, 85, -100] // High cyber zenith luminary
+      : [-120, 75, 40]; // 2026 Golden hour sunset
 
-      {/* 2. Hemisphere Light: Warm golden sky light bouncing from cool terrain shadows */}
+  return (
+    <group name={`WorldLighting_${activeEra}`}>
+      {/* 1. Atmospheric Ambient Fill adapted to historical era */}
+      <ambientLight color={atmosphere.ambientColor} intensity={atmosphere.ambientIntensity} />
+
+      {/* 2. Hemisphere Light: Sky color bouncing from terrain */}
       <hemisphereLight
-        color="#FFAE73"
-        groundColor="#1D2A3A"
-        intensity={0.7}
+        color={atmosphere.sunColor}
+        groundColor={atmosphere.skyColor}
+        intensity={0.65}
       />
 
-      {/* 3. Primary Golden-Hour Sun (Low-angle directional light from West/Southwest) */}
+      {/* 3. Primary Directional Celestial Sun/Luminary */}
       <directionalLight
-        position={[-120, 75, 40]}
-        intensity={2.8}
-        color="#FFB366"
+        position={sunPosition}
+        intensity={atmosphere.sunIntensity}
+        color={atmosphere.sunColor}
         castShadow={enableShadows}
         shadow-mapSize-width={shadowMapSize}
         shadow-mapSize-height={shadowMapSize}
@@ -43,21 +68,21 @@ export function WorldLighting({ qualityPreset = 'high' }: WorldLightingProps) {
       {/* 4. Cool Mountain Rim Light (from Northeast) */}
       <directionalLight
         position={[90, 80, -280]}
-        intensity={0.8}
-        color="#8EB1D4"
+        intensity={0.7}
+        color={activeEra === 'the-next-age' ? '#00D4FF' : '#8EB1D4'}
       />
 
-      {/* 5. Central Chronos Plaza Ambient Uplight */}
+      {/* 5. Central Chronos Plaza Ambient Uplight with Era Accent Color */}
       <pointLight
-        position={[0, 12, -120]}
-        intensity={3.2}
-        distance={70}
-        color="#FFA845"
+        position={[0, 14, -120]}
+        intensity={3.4}
+        distance={75}
+        color={atmosphere.accentColor}
         decay={2}
       />
 
-      {/* 6. Atmospheric Sunset Fog for rich depth and aerial perspective */}
-      <fogExp2 attach="fog" args={['#2A211D', 0.0055]} />
+      {/* 6. Dynamic Atmospheric Fog for era aerial perspective */}
+      <fogExp2 attach="fog" args={[atmosphere.fogColor, atmosphere.fogDensity]} />
     </group>
   );
 }

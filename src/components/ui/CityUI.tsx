@@ -6,7 +6,9 @@ import {
   type CinematicSegmentId,
   CINEMATIC_SEGMENTS,
 } from '@/types/phase04';
+import { TEMPORAL_ERAS, type HistoricalEraId } from '@/types/phase05';
 import { chronosStore } from '@/lib/chronosStore';
+import { TimeScrubber } from './TimeScrubber';
 
 interface CityUIProps {
   onSelectSegment: (segmentId: CinematicSegmentId) => void;
@@ -24,9 +26,17 @@ export function CityUI({
     () => 'grand-arrival' as CinematicSegmentId
   );
 
+  const activeEra = useSyncExternalStore(
+    (cb) => chronosStore.subscribe(cb),
+    () => chronosStore.activeEra,
+    () => 'the-present' as HistoricalEraId
+  );
+
   const activeSegmentConfig =
     CINEMATIC_SEGMENTS.find((s) => s.id === currentSegment) ||
     CINEMATIC_SEGMENTS[0];
+
+  const eraConfig = TEMPORAL_ERAS[activeEra] || TEMPORAL_ERAS['the-present'];
 
   // Key navigation chapter anchors
   const CHAPTER_STATIONS: { id: CinematicSegmentId; label: string; number: string }[] = [
@@ -60,26 +70,30 @@ export function CityUI({
               <h1 className="font-cinzel text-lg sm:text-xl font-bold tracking-[0.25em] text-[#F5F3ED]">
                 AETERNUM
               </h1>
-              <span className="rounded border border-[#D4AF37]/40 bg-[#D4AF37]/10 px-1.5 py-0.5 font-mono text-[9px] tracking-widest text-[#FFE8B5]">
-                2026
+              <span className="rounded border border-[#D4AF37]/40 bg-[#D4AF37]/10 px-2 py-0.5 font-mono text-[9px] font-bold tracking-widest text-[#FFE8B5]">
+                {eraConfig.yearLabel}
               </span>
             </div>
             <span className="font-mono text-[10px] tracking-[0.28em] text-[#D4AF37] uppercase">
-              CINEMATIC CITY JOURNEY &bull; {activeSegmentConfig.district}
+              {eraConfig.epochName} &bull; {activeSegmentConfig.district}
             </span>
           </div>
         </div>
 
-        {/* Telemetry Flight Gauge (Desktop) */}
+        {/* Telemetry Flight & Temporal Gauge (Desktop) */}
         <div className="hidden md:flex items-center gap-4 rounded-full border border-white/10 bg-[#08090D]/80 px-4 py-1.5 backdrop-blur-md">
           <div className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span className="font-mono text-[10px] tracking-[0.2em] text-zinc-300">
-              SPLINE TRAJECTORY
+              TEMPORAL ENGINE
             </span>
           </div>
           <span className="font-mono text-[10px] text-zinc-600">|</span>
           <span className="font-mono text-[10px] tracking-widest text-[#EAB774]">
+            {eraConfig.yearLabel}
+          </span>
+          <span className="font-mono text-[10px] text-zinc-600">|</span>
+          <span className="font-mono text-[10px] tracking-widest text-zinc-400">
             SEG {activeSegmentConfig.number}/08
           </span>
         </div>
@@ -100,8 +114,19 @@ export function CityUI({
       {/* ================================================================== */}
       {/* 2. SIDE HUD COMPASS / FLIGHT GAUGES (Left Screen Edge) */}
       {/* ================================================================== */}
-      <aside aria-label="City Navigation HUD" className="absolute left-6 top-1/2 -translate-y-1/2 hidden lg:flex flex-col gap-3 pointer-events-auto">
+      <aside
+        aria-label="City Navigation HUD"
+        className="absolute left-6 top-1/2 -translate-y-1/2 hidden lg:flex flex-col gap-3 pointer-events-auto"
+      >
         <div className="flex flex-col gap-1 border-l-2 border-[#D4AF37]/60 pl-3">
+          <span className="font-mono text-[9px] tracking-[0.25em] text-zinc-500 uppercase">
+            ACTIVE ERA
+          </span>
+          <span className="font-cinzel text-xs font-semibold tracking-wider text-[#F5F3ED]">
+            {eraConfig.epochName} ({eraConfig.yearLabel})
+          </span>
+        </div>
+        <div className="flex flex-col gap-1 border-l-2 border-[#D4AF37]/40 pl-3">
           <span className="font-mono text-[9px] tracking-[0.25em] text-zinc-500 uppercase">
             DISTRICT
           </span>
@@ -111,22 +136,23 @@ export function CityUI({
         </div>
         <div className="flex flex-col gap-1 border-l-2 border-[#D4AF37]/30 pl-3">
           <span className="font-mono text-[9px] tracking-[0.25em] text-zinc-500 uppercase">
-            VECTOR ALTITUDE
+            LANDMARK
           </span>
           <span className="font-mono text-[10px] text-[#EAB774]">
-            {activeSegmentConfig.id.includes('observatory')
-              ? '48.0M [PEAK]'
-              : activeSegmentConfig.id.includes('water')
-              ? '7.5M [CANAL]'
-              : '16.0M [SKYLINE]'}
+            {eraConfig.landmarkTitle}
           </span>
         </div>
       </aside>
 
       {/* ================================================================== */}
-      {/* 3. BOTTOM CINEMATIC JOURNEY CONTROLS & CHAPTER STATION SELECTOR */}
+      {/* 3. BOTTOM CINEMATIC CONTROLS: TIME SCRUBBER & CHAPTER SELECTOR */}
       {/* ================================================================== */}
       <footer className="absolute bottom-6 left-6 right-6 flex flex-col items-center gap-3 pointer-events-auto">
+        {/* CINEMATIC TIME SCRUBBER INSTRUMENT */}
+        <div className="rounded-2xl border border-white/10 bg-[#08090D]/85 px-4 sm:px-6 py-2.5 shadow-2xl backdrop-blur-md">
+          <TimeScrubber />
+        </div>
+
         {/* Active Segment Title & Description */}
         <div className="text-center px-4 max-w-xl">
           <div className="flex items-center justify-center gap-2">
@@ -137,7 +163,7 @@ export function CityUI({
               {activeSegmentConfig.title}
             </span>
           </div>
-          <p className="mt-1 text-[11px] text-zinc-400 font-mono tracking-wider line-clamp-2">
+          <p className="mt-0.5 text-[10px] sm:text-[11px] text-zinc-400 font-mono tracking-wider line-clamp-1">
             {activeSegmentConfig.description}
           </p>
         </div>
