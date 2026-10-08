@@ -1,0 +1,30 @@
+{
+  "project": "CHRONOS \u2014 Aeternum",
+  "phase": "11",
+  "topic": "Mobile and Performance Optimization",
+  "images_are_concept_references": true,
+  "illustrated_performance_metrics_are_not_actual_measurements": true,
+  "audio": "re-encoded from existing Phase 10 prototype WAV cues into Ogg Opus. Do not layer as extra sounds; use as bandwidth-saving replacement with compatible fallback.",
+  "images": [
+    "01-desktop-layout.jpg",
+    "02-tablet-mobile-layout.jpg",
+    "03-performance-audit-concept.jpg",
+    "04-adaptive-quality-controls.jpg",
+    "05-mobile-touch-controls.jpg",
+    "06-loading-asset-streaming.jpg",
+    "07-energy-efficient-rendering.jpg",
+    "08-device-quality-ladder.jpg",
+    "09-ui-refinements.jpg",
+    "10-portrait-hero-reference.jpg"
+  ],
+  "audio_files": [
+    "01-chamber-drone.ogg",
+    "02-aeternum-city-ambience.ogg",
+    "03-temporal-whoosh.ogg",
+    "04-echo-chime.ogg",
+    "05-finale-swell.ogg",
+    "06-ui-hover.ogg",
+    "07-button-confirm.ogg",
+    "08-loading-hum.ogg"
+  ]
+}

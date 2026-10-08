@@ -23,6 +23,7 @@ import { ParadoxSequenceHUD } from './ParadoxSequenceHUD';
 import { FinalChoiceModal } from './FinalChoiceModal';
 import { EpilogueOverlay } from './EpilogueOverlay';
 import { AudioControlsHUD } from './AudioControlsHUD';
+import { QualityControlHUD } from './QualityControlHUD';
 import { audioManager } from '@/lib/audioManager';
 
 interface CityUIProps {
@@ -110,7 +111,7 @@ export function CityUI({
       {/* ================================================================== */}
       {/* 1. TOP HEADER BAR: Branding, Coordinates & Return to Chamber */}
       {/* ================================================================== */}
-      <header className="absolute top-6 left-6 right-6 flex items-center justify-between pointer-events-auto">
+      <header className="absolute top-4 sm:top-6 left-3 sm:left-6 right-3 sm:right-6 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 pointer-events-auto">
         {/* Brand & Era Indicator */}
         <div className="flex items-center gap-3">
           <div className="relative h-9 w-9">
@@ -159,10 +160,13 @@ export function CityUI({
           </span>
         </div>
 
-        {/* Center Header Controls: Mode Switcher, Echo Journal Pill & Audio HUD */}
-        <div className="flex items-center gap-3">
+        {/* Center Header Controls: Mode Switcher, Echo Journal Pill, Audio & Quality HUD */}
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* Audio Controls HUD */}
           <AudioControlsHUD />
+
+          {/* Quality Controls HUD (Phase 11 Adaptive Quality) */}
+          <QualityControlHUD />
 
           {/* Mode Switcher */}
           <div className="flex items-center gap-1 rounded-full border border-white/15 bg-[#08090D]/85 p-1 shadow-lg backdrop-blur-md">

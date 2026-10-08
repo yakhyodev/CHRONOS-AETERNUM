@@ -1,12 +1,19 @@
 'use client';
 
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect, useSyncExternalStore } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { CHRONOS_PALETTE } from '@/lib/constants';
 import { chronosStore } from '@/lib/chronosStore';
 
 export function EnergySphere() {
+  const effectiveQuality = useSyncExternalStore(
+    (cb) => chronosStore.subscribe(cb),
+    () => chronosStore.effectiveQuality,
+    () => 'high' as const
+  );
+  const enableShadows = effectiveQuality !== 'low';
+
   const coreRef = useRef<THREE.Mesh>(null);
   const coronaRef = useRef<THREE.Mesh>(null);
   const ringArcRef1 = useRef<THREE.Mesh>(null);
@@ -130,15 +137,15 @@ export function EnergySphere() {
         <ringGeometry args={[0.7, 0.82, 48]} />
       </mesh>
 
-      {/* Primary High-Intensity Amber Point Light casting shadows */}
+      {/* Primary High-Intensity Amber Point Light casting shadows (bypassed on Low preset) */}
       <pointLight
         ref={coreLightRef}
         color={CHRONOS_PALETTE.emberLight}
         intensity={8.0}
         distance={34}
         decay={1.7}
-        castShadow
-        shadow-mapSize={[1024, 1024]}
+        castShadow={enableShadows}
+        shadow-mapSize={enableShadows ? [1024, 1024] : [256, 256]}
         shadow-bias={-0.0003}
       />
 

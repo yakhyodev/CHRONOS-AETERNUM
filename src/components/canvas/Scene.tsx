@@ -1,7 +1,8 @@
 'use client';
 
 import { Suspense, useState, useEffect, useSyncExternalStore } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
 import { CHRONOS_PALETTE, type CinematicShotId } from '@/lib/constants';
 import {
   chronosStore,
@@ -28,6 +29,17 @@ interface SceneProps {
   className?: string;
 }
 
+/**
+ * Lightweight per-frame observer evaluating frame rendering latency
+ * Feeds store rolling average to automatically throttle quality on struggling devices
+ */
+function PerformanceOptimizer() {
+  useFrame((_, delta) => {
+    chronosStore.recordFrameTime(delta);
+  });
+  return null;
+}
+
 export function Scene({
   currentShot = 'shot-01',
   reducedMotion = false,
@@ -35,12 +47,19 @@ export function Scene({
 }: SceneProps) {
   const [mounted, setMounted] = useState(false);
   const [webglSupported, setWebglSupported] = useState(true);
+  const [isPageVisible, setIsPageVisible] = useState(true);
 
   // Sync with store state changes without forcing frame-level React reconciliations
   const qualityPreset = useSyncExternalStore(
     (cb) => chronosStore.subscribe(cb),
     () => chronosStore.qualityPreset,
-    () => 'high' as QualityPreset
+    () => 'auto' as QualityPreset
+  );
+
+  const effectiveQuality = useSyncExternalStore(
+    (cb) => chronosStore.subscribe(cb),
+    () => chronosStore.effectiveQuality,
+    () => 'high' as const
   );
 
   const worldMode = useSyncExternalStore(
@@ -64,6 +83,12 @@ export function Scene({
   useEffect(() => {
     setMounted(true);
     setWebglSupported(isWebGLAvailable());
+
+    const handleVisibility = () => {
+      setIsPageVisible(document.visibilityState === 'visible');
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
 
   if (!mounted) {
@@ -84,7 +109,8 @@ export function Scene({
     return <WebGLFallback onRetry={() => setWebglSupported(isWebGLAvailable())} />;
   }
 
-  const qualityConfig = QUALITY_PRESETS[qualityPreset] || QUALITY_PRESETS.high;
+  const activeQualityKey = qualityPreset === 'auto' ? effectiveQuality : qualityPreset;
+  const qualityConfig = QUALITY_PRESETS[activeQualityKey] || QUALITY_PRESETS.high;
   const isCityActive = worldMode === 'city';
   const isTransitioning =
     worldMode === 'transitioning_to_city' ||
@@ -92,12 +118,29 @@ export function Scene({
 
   const eraConfig = TEMPORAL_ERAS[activeEra] || TEMPORAL_ERAS['the-present'];
 
+  const handleCreated = ({ gl }: { gl: THREE.WebGLRenderer }) => {
+    const canvas = gl.domElement;
+    const handleContextLost = (event: Event) => {
+      event.preventDefault();
+      console.warn('[CHRONOS] WebGL context lost. Rendering fallback UI.');
+      setWebglSupported(false);
+    };
+    const handleContextRestored = () => {
+      console.info('[CHRONOS] WebGL context restored.');
+      setWebglSupported(true);
+    };
+    canvas.addEventListener('webglcontextlost', handleContextLost);
+    canvas.addEventListener('webglcontextrestored', handleContextRestored);
+  };
+
   return (
     <div className={`relative w-full h-full ${className}`}>
       <Canvas
         camera={{ position: [0, 2.5, 26], fov: 54, near: 0.1, far: 500 }}
+        frameloop={isPageVisible ? 'always' : 'never'}
+        onCreated={handleCreated}
         gl={{
-          antialias: qualityPreset !== 'low',
+          antialias: activeQualityKey !== 'low',
           alpha: false,
           powerPreference: 'high-performance',
           stencil: false,
@@ -105,6 +148,8 @@ export function Scene({
         dpr={qualityConfig.dpr}
         shadows={qualityConfig.shadows}
       >
+        <PerformanceOptimizer />
+
         {/* Dynamic Background: Void Black in chamber, Era Sky in city */}
         <color
           attach="background"
@@ -156,7 +201,7 @@ export function Scene({
           {/* 3. AETERNUM CITY WORLD (Active in City mode & transitions) */}
           {/* ============================================================== */}
           {(isCityActive || isTransitioning) && (
-            <AeternumWorld qualityPreset={qualityPreset} />
+            <AeternumWorld qualityPreset={activeQualityKey} />
           )}
         </Suspense>
       </Canvas>

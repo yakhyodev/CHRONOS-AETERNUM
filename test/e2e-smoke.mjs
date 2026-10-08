@@ -193,9 +193,35 @@ async function runSmokeTests() {
     if (polishArt.statusCode !== 200) {
       throw new Error(`Phase 10 polish reference image returned ${polishArt.statusCode}`);
     }
-    console.log('  ✓ Phase 10 Cinematic Audio cues & UI polish references verified');
+    // 13. Test Phase 11 Mobile & Performance Optimization Assets & Manifest
+    console.log('[13/13] Verifying Phase 11 Ogg Opus audio, performance references & manifest...');
+    const manifest11 = await checkUrl(`${baseUrl}/chronos/phase11/manifest.json`);
+    if (manifest11.statusCode !== 200) {
+      throw new Error(`Phase 11 manifest.json returned ${manifest11.statusCode}`);
+    }
+    const oggChamber = await checkUrl(`${baseUrl}/chronos/phase11/audio/01-chamber-drone.ogg`);
+    if (oggChamber.statusCode !== 200) {
+      throw new Error(`Phase 11 01-chamber-drone.ogg returned ${oggChamber.statusCode}`);
+    }
+    const oggCity = await checkUrl(`${baseUrl}/chronos/phase11/audio/02-aeternum-city-ambience.ogg`);
+    if (oggCity.statusCode !== 200) {
+      throw new Error(`Phase 11 02-aeternum-city-ambience.ogg returned ${oggCity.statusCode}`);
+    }
+    const oggWhoosh = await checkUrl(`${baseUrl}/chronos/phase11/audio/03-temporal-whoosh.ogg`);
+    if (oggWhoosh.statusCode !== 200) {
+      throw new Error(`Phase 11 03-temporal-whoosh.ogg returned ${oggWhoosh.statusCode}`);
+    }
+    const perfBoard = await checkUrl(`${baseUrl}/chronos/phase11/images/00-phase11-master-art-direction.jpg`);
+    if (perfBoard.statusCode !== 200) {
+      throw new Error(`Phase 11 performance board image returned ${perfBoard.statusCode}`);
+    }
+    const qualityQuery = await checkUrl(`${baseUrl}?quality=low`);
+    if (qualityQuery.statusCode !== 200) {
+      throw new Error(`Quality query param returned ${qualityQuery.statusCode}`);
+    }
+    console.log('  ✓ Phase 11 OGG Opus audio cues & mobile performance board verified');
 
-    console.log('\nALL 12 E2E SMOKE TESTS PASSED CLEANLY.\n');
+    console.log('\nALL 13 E2E SMOKE TESTS PASSED CLEANLY.\n');
     process.exit(0);
   } catch (err) {
     console.error('Smoke Test Failed:', err.message);

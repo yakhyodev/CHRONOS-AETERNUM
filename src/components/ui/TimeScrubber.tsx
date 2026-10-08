@@ -126,7 +126,7 @@ export function TimeScrubber() {
         aria-valuetext={`${morphState.yearDisplay} (${eraConfig.epochName})`}
         onPointerDown={handlePointerDown}
         onKeyDown={handleKeyDown}
-        className="relative w-72 sm:w-96 md:w-[460px] h-9 flex items-center cursor-pointer group focus:outline-none"
+        className="relative w-[calc(100vw-3rem)] max-w-[280px] sm:max-w-sm md:max-w-[460px] h-9 flex items-center cursor-pointer group focus:outline-none touch-none select-none"
       >
         {/* Outer Background Rail */}
         <div className="absolute inset-x-0 h-1.5 rounded-full bg-zinc-900/90 border border-white/10" />

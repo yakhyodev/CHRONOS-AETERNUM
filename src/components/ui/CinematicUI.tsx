@@ -5,6 +5,7 @@ import { PROJECT_STRINGS, type CinematicShotId, CINEMATIC_SHOTS } from '@/lib/co
 import type { ActivationState } from '@/lib/chronosStore';
 import { ShotNavigator } from './ShotNavigator';
 import { AudioControlsHUD } from './AudioControlsHUD';
+import { QualityControlHUD } from './QualityControlHUD';
 import { audioManager } from '@/lib/audioManager';
 
 interface CinematicUIProps {
@@ -39,7 +40,7 @@ export function CinematicUI({
   };
 
   return (
-    <div className="pointer-events-none relative z-30 flex min-h-screen flex-col justify-between p-6 sm:p-10 md:p-14">
+    <div className="pointer-events-none relative z-30 flex min-h-screen flex-col justify-between p-4 sm:p-10 md:p-14">
       {/* Top Bar with Minimal Chronos Brand and Telemetry */}
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -60,9 +61,10 @@ export function CinematicUI({
           </span>
         </div>
 
-        {/* Minimal telemetry / Shot status & Audio HUD */}
-        <div className="flex items-center gap-3 font-mono text-[11px] tracking-widest text-zinc-400">
+        {/* Minimal telemetry / Shot status, Audio HUD & Quality HUD */}
+        <div className="flex items-center gap-2 sm:gap-3 font-mono text-[11px] tracking-widest text-zinc-400">
           <AudioControlsHUD />
+          <QualityControlHUD />
           <div className="hidden sm:flex items-center gap-2 rounded border border-white/10 bg-[#08090D]/60 px-3 py-1 backdrop-blur-sm">
             <span
               className={`h-1.5 w-1.5 rounded-full ${

@@ -50,6 +50,10 @@ class AudioManager {
   // Cached SFX Audio Elements pools for zero-latency concurrent playback
   private sfxPool: Map<SfxCueId, HTMLAudioElement[]> = new Map();
 
+  // Codec support & background state
+  private canPlayOggOpus = false;
+  private pausedDueToBackground: AmbientTrackId = 'none';
+
   // Throttling timestamps
   private lastHoverTime = 0;
   private lastWhooshTime = 0;
@@ -59,9 +63,53 @@ class AudioManager {
 
   constructor() {
     if (typeof window !== 'undefined') {
+      this.canPlayOggOpus = this.checkOggSupport();
       this.loadSettings();
       this.setupGlobalUnlockListener();
+      this.setupVisibilityListener();
     }
+  }
+
+  private checkOggSupport(): boolean {
+    if (typeof Audio === 'undefined') return false;
+    try {
+      const a = new Audio();
+      const can = a.canPlayType('audio/ogg; codecs="opus"');
+      return can === 'probably' || can === 'maybe';
+    } catch {
+      return false;
+    }
+  }
+
+  private setupVisibilityListener(): void {
+    if (typeof document === 'undefined') return;
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        if (this.currentAmbientTrack !== 'none') {
+          this.pausedDueToBackground = this.currentAmbientTrack;
+          if (this.chamberAudio) this.chamberAudio.pause();
+          if (this.cityAudio) this.cityAudio.pause();
+          if (this.loadingAudio) this.loadingAudio.pause();
+        }
+      } else if (document.visibilityState === 'visible') {
+        if (this.pausedDueToBackground !== 'none' && this.isUnlocked && !this.isMuted) {
+          const track = this.pausedDueToBackground;
+          this.pausedDueToBackground = 'none';
+          const audio =
+            track === 'chamber'
+              ? this.chamberAudio
+              : track === 'city'
+              ? this.cityAudio
+              : track === 'loading'
+              ? this.loadingAudio
+              : null;
+          if (audio) {
+            audio.volume = this.getEffectiveAmbienceVolume();
+            audio.play().catch(() => {});
+          }
+        }
+      }
+    });
   }
 
   public subscribe(listener: AudioListener): () => void {
@@ -142,41 +190,66 @@ class AudioManager {
     this.notify();
   }
 
+  private getAudioSourceUrl(filenameNoExt: string): string {
+    if (this.canPlayOggOpus) {
+      return `/chronos/phase11/audio/${filenameNoExt}.ogg`;
+    }
+    return `/chronos/phase10/audio/${filenameNoExt}.wav`;
+  }
+
+  private createAudioElement(filenameNoExt: string, loop: boolean = false): HTMLAudioElement {
+    const primaryUrl = this.getAudioSourceUrl(filenameNoExt);
+    const audio = new Audio(primaryUrl);
+    audio.loop = loop;
+    audio.preload = 'auto';
+
+    if (this.canPlayOggOpus) {
+      audio.addEventListener(
+        'error',
+        () => {
+          const fallbackUrl = `/chronos/phase10/audio/${filenameNoExt}.wav`;
+          if (audio.src !== fallbackUrl) {
+            audio.src = fallbackUrl;
+            if (loop && !audio.paused) {
+              audio.play().catch(() => {});
+            }
+          }
+        },
+        { once: true }
+      );
+    }
+
+    return audio;
+  }
+
   private initAudioElements(): void {
     if (typeof window === 'undefined') return;
 
     if (!this.chamberAudio) {
-      this.chamberAudio = new Audio('/chronos/phase10/audio/01-chamber-drone.wav');
-      this.chamberAudio.loop = true;
-      this.chamberAudio.preload = 'auto';
+      this.chamberAudio = this.createAudioElement('01-chamber-drone', true);
     }
     if (!this.cityAudio) {
-      this.cityAudio = new Audio('/chronos/phase10/audio/02-aeternum-city-ambience.wav');
-      this.cityAudio.loop = true;
-      this.cityAudio.preload = 'auto';
+      this.cityAudio = this.createAudioElement('02-aeternum-city-ambience', true);
     }
     if (!this.loadingAudio) {
-      this.loadingAudio = new Audio('/chronos/phase10/audio/08-loading-hum.wav');
-      this.loadingAudio.loop = true;
-      this.loadingAudio.preload = 'auto';
+      this.loadingAudio = this.createAudioElement('08-loading-hum', true);
     }
 
     // Pre-populate SFX pool
     const sfxFiles: Record<SfxCueId, string> = {
-      whoosh: '/chronos/phase10/audio/03-temporal-whoosh.wav',
-      echo: '/chronos/phase10/audio/04-echo-chime.wav',
-      swell: '/chronos/phase10/audio/05-finale-swell.wav',
-      hover: '/chronos/phase10/audio/06-ui-hover.wav',
-      confirm: '/chronos/phase10/audio/07-button-confirm.wav',
-      loading_hum: '/chronos/phase10/audio/08-loading-hum.wav',
+      whoosh: '03-temporal-whoosh',
+      echo: '04-echo-chime',
+      swell: '05-finale-swell',
+      hover: '06-ui-hover',
+      confirm: '07-button-confirm',
+      loading_hum: '08-loading-hum',
     };
 
     (Object.keys(sfxFiles) as SfxCueId[]).forEach((key) => {
       if (!this.sfxPool.has(key)) {
         const pool: HTMLAudioElement[] = [];
         for (let i = 0; i < 3; i++) {
-          const a = new Audio(sfxFiles[key]);
-          a.preload = 'auto';
+          const a = this.createAudioElement(sfxFiles[key], false);
           pool.push(a);
         }
         this.sfxPool.set(key, pool);

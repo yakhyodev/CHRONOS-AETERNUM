@@ -47,7 +47,8 @@ export type WorldMode =
   | 'city'
   | 'transitioning_to_chamber';
 export type ActivationState = 'idle' | 'activating' | 'active' | 'deactivating';
-export type QualityPreset = 'high' | 'medium' | 'low';
+export type QualityPreset = 'auto' | 'high' | 'medium' | 'low';
+export type ResolvedQuality = 'high' | 'medium' | 'low';
 
 export interface QualityConfig {
   dpr: [number, number];
@@ -57,6 +58,12 @@ export interface QualityConfig {
 }
 
 export const QUALITY_PRESETS: Record<QualityPreset, QualityConfig> = {
+  auto: {
+    dpr: [1, 1.5],
+    shadows: true,
+    particleCount: 220,
+    shadowMapSize: 512,
+  },
   high: {
     dpr: [1, 2],
     shadows: true,
@@ -93,9 +100,14 @@ class ChronosStore {
   public currentSegment: CinematicSegmentId = 'grand-arrival';
   public activationState: ActivationState = 'idle';
   public currentShot: CinematicShotId = 'shot-01';
-  public qualityPreset: QualityPreset = 'high';
+  public qualityPreset: QualityPreset = 'auto';
+  public effectiveQuality: ResolvedQuality = 'high';
   public reducedMotion = false;
   public isTransitioning = false;
+
+  // Frame-rate monitoring for AUTO quality adaptation
+  private frameDeltas: number[] = [];
+  private lastQualityAdaptTime = 0;
 
   // Phase 05 Temporal Engine Core State
   public activeEra: HistoricalEraId = 'the-present';
@@ -142,12 +154,14 @@ class ChronosStore {
   public isFinaleCompleted = false;
   public paradoxSequenceIndex = 0;
 
+  private readonly QUALITY_STORAGE_KEY = 'chronos_quality_preset';
   private readonly ECHOES_STORAGE_KEY = 'chronos_discovered_echoes';
   private readonly NARRATIVE_STORAGE_KEY = 'chronos_narrative_progress';
   private readonly PARADOX_STORAGE_KEY = 'chronos_paradox_progress';
 
   constructor() {
     if (typeof window !== 'undefined') {
+      this.loadQualityPreset();
       this.loadDiscoveredEchoes();
       this.loadNarrativeProgress();
       this.loadParadoxProgress();
@@ -317,10 +331,84 @@ class ChronosStore {
     }
   }
 
+  public resolveAutoQuality(): ResolvedQuality {
+    if (typeof window === 'undefined') return 'high';
+    const isMobile =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+      window.innerWidth < 768;
+    const cores = navigator.hardwareConcurrency || 4;
+    const isReduced = this.reducedMotion;
+
+    if (isMobile) {
+      return cores <= 4 || isReduced ? 'low' : 'medium';
+    }
+    return cores <= 4 || isReduced ? 'medium' : 'high';
+  }
+
+  public loadQualityPreset(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = window.localStorage.getItem(this.QUALITY_STORAGE_KEY) as QualityPreset | null;
+      if (stored && ['auto', 'high', 'medium', 'low'].includes(stored)) {
+        this.qualityPreset = stored;
+      } else {
+        this.qualityPreset = 'auto';
+      }
+      this.effectiveQuality =
+        this.qualityPreset === 'auto' ? this.resolveAutoQuality() : this.qualityPreset;
+    } catch {
+      this.qualityPreset = 'auto';
+      this.effectiveQuality = this.resolveAutoQuality();
+    }
+  }
+
+  public saveQualityPreset(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(this.QUALITY_STORAGE_KEY, this.qualityPreset);
+    } catch {}
+  }
+
   public setQualityPreset(preset: QualityPreset): void {
-    if (this.qualityPreset !== preset) {
-      this.qualityPreset = preset;
-      this.notify();
+    this.qualityPreset = preset;
+    this.effectiveQuality = preset === 'auto' ? this.resolveAutoQuality() : preset;
+    this.saveQualityPreset();
+    this.notify();
+  }
+
+  /**
+   * Adaptive frame-rate monitoring with hysteresis and cooldown
+   * Evaluates rolling average FPS and gently downgrades effective quality if struggling
+   */
+  public recordFrameTime(deltaSeconds: number): void {
+    if (this.qualityPreset !== 'auto') return;
+    if (deltaSeconds <= 0 || deltaSeconds > 0.5) return;
+
+    this.frameDeltas.push(deltaSeconds);
+    if (this.frameDeltas.length > 90) {
+      this.frameDeltas.shift();
+    }
+
+    if (this.frameDeltas.length >= 60) {
+      const now = Date.now();
+      if (now - this.lastQualityAdaptTime < 10000) return; // 10s cooldown
+
+      const avgDelta = this.frameDeltas.reduce((a, b) => a + b, 0) / this.frameDeltas.length;
+      const avgFps = 1 / avgDelta;
+
+      if (avgFps < 28) {
+        if (this.effectiveQuality === 'high') {
+          this.effectiveQuality = 'medium';
+          this.lastQualityAdaptTime = now;
+          this.frameDeltas = [];
+          this.notify();
+        } else if (this.effectiveQuality === 'medium') {
+          this.effectiveQuality = 'low';
+          this.lastQualityAdaptTime = now;
+          this.frameDeltas = [];
+          this.notify();
+        }
+      }
     }
   }
 

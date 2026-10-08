@@ -908,6 +908,88 @@ describe('CHRONOS — Aeternum State & Timeline Engine', () => {
       }).not.toThrow();
     });
   });
+
+  describe('Phase 11 — Adaptive Quality Engine & Mobile Performance Optimization', () => {
+    it('defines clamped DPR and scaled particle counts for all quality presets', () => {
+      expect(QUALITY_PRESETS.high.dpr).toEqual([1, 2]);
+      expect(QUALITY_PRESETS.high.shadows).toBe(true);
+      expect(QUALITY_PRESETS.high.particleCount).toBe(360);
+
+      expect(QUALITY_PRESETS.medium.dpr).toEqual([1, 1.5]);
+      expect(QUALITY_PRESETS.medium.shadows).toBe(true);
+      expect(QUALITY_PRESETS.medium.particleCount).toBe(220);
+
+      expect(QUALITY_PRESETS.low.dpr).toEqual([1, 1]);
+      expect(QUALITY_PRESETS.low.shadows).toBe(false);
+      expect(QUALITY_PRESETS.low.particleCount).toBe(120);
+    });
+
+    it('persists and restores manual quality presets in store', () => {
+      chronosStore.setQualityPreset('medium');
+      expect(chronosStore.qualityPreset).toBe('medium');
+      expect(chronosStore.effectiveQuality).toBe('medium');
+
+      chronosStore.setQualityPreset('low');
+      expect(chronosStore.qualityPreset).toBe('low');
+      expect(chronosStore.effectiveQuality).toBe('low');
+
+      chronosStore.setQualityPreset('high');
+      expect(chronosStore.qualityPreset).toBe('high');
+      expect(chronosStore.effectiveQuality).toBe('high');
+    });
+
+    it('handles AUTO preset resolution gracefully', () => {
+      chronosStore.setQualityPreset('auto');
+      expect(chronosStore.qualityPreset).toBe('auto');
+      expect(['high', 'medium', 'low']).toContain(chronosStore.effectiveQuality);
+    });
+
+    it('adapts effective quality dynamically on sustained low FPS', () => {
+      chronosStore.setQualityPreset('auto');
+      // Force effective quality to high for test
+      (chronosStore as unknown as { effectiveQuality: string }).effectiveQuality = 'high';
+      (chronosStore as unknown as { lastQualityAdaptTime: number }).lastQualityAdaptTime = 0;
+
+      // Simulate 60 frames with 20 FPS (0.05s per frame delta)
+      for (let i = 0; i < 65; i++) {
+        chronosStore.recordFrameTime(0.05);
+      }
+
+      // Should automatically downgrade from high to medium
+      expect(chronosStore.effectiveQuality).toBe('medium');
+
+      // Further frame times while under 10s cooldown should NOT downgrade immediately
+      for (let i = 0; i < 65; i++) {
+        chronosStore.recordFrameTime(0.05);
+      }
+      expect(chronosStore.effectiveQuality).toBe('medium');
+
+      // Reset cooldown and simulate sustained low FPS again
+      (chronosStore as unknown as { lastQualityAdaptTime: number }).lastQualityAdaptTime = 0;
+      for (let i = 0; i < 65; i++) {
+        chronosStore.recordFrameTime(0.05);
+      }
+      expect(chronosStore.effectiveQuality).toBe('low');
+    });
+
+    it('handles reduced-motion preference updates and store notifications', () => {
+      let notified = false;
+      const unsubscribe = chronosStore.subscribe(() => {
+        notified = true;
+      });
+
+      chronosStore.setReducedMotion(true);
+      expect(chronosStore.reducedMotion).toBe(true);
+      expect(notified).toBe(true);
+
+      notified = false;
+      chronosStore.setReducedMotion(false);
+      expect(chronosStore.reducedMotion).toBe(false);
+      expect(notified).toBe(true);
+
+      unsubscribe();
+    });
+  });
 });
 
 

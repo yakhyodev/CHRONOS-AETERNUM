@@ -122,7 +122,7 @@ export default function ChronosPage() {
     }
 
     const urlQuality = params.get('quality') as QualityPreset;
-    if (urlQuality && ['high', 'medium', 'low'].includes(urlQuality)) {
+    if (urlQuality && ['auto', 'high', 'medium', 'low'].includes(urlQuality)) {
       chronosStore.setQualityPreset(urlQuality);
     }
 

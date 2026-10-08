@@ -135,18 +135,9 @@ export function EraLandmark() {
     const pos = chronosStore.timelinePosition;
     const { eraA, eraB, blendFactor } = getTemporalMorphState(pos);
 
-    const eraRefs = {
-      'the-origin': originGroupRef.current,
-      'the-kingdom': kingdomGroupRef.current,
-      'the-machine': machineGroupRef.current,
-      'the-present': presentGroupRef.current,
-      'the-next-age': nextAgeGroupRef.current,
-    };
-
-    // Update visibility and scale morph for all era groups
-    Object.entries(eraRefs).forEach(([eraKey, group]) => {
+    // Update visibility and scale morph for each era group without per-frame object allocations
+    const updateEraGroup = (group: THREE.Group | null, eraKey: string) => {
       if (!group) return;
-
       if (eraKey === eraA) {
         group.visible = blendFactor < 0.98;
         const scaleVal = 1.0 - blendFactor * 0.25;
@@ -160,7 +151,13 @@ export function EraLandmark() {
       } else {
         group.visible = false;
       }
-    });
+    };
+
+    updateEraGroup(originGroupRef.current, 'the-origin');
+    updateEraGroup(kingdomGroupRef.current, 'the-kingdom');
+    updateEraGroup(machineGroupRef.current, 'the-machine');
+    updateEraGroup(presentGroupRef.current, 'the-present');
+    updateEraGroup(nextAgeGroupRef.current, 'the-next-age');
 
     // 1890 Mechanical gears rotation
     if (gearsRef.current && !chronosStore.isTimeFrozen) {

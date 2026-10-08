@@ -65,6 +65,7 @@ export function CityCameraRig({
   // Explore Mode orbit state
   const isOrbitDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0 });
+  const pinchDistance = useRef<number | null>(null);
   const orbitAngles = useRef({ azimuth: 0, polar: Math.PI / 3, distance: 60 });
   const targetOrbitAngles = useRef({ azimuth: 0, polar: Math.PI / 3, distance: 60 });
   const activeDistrictRef = useRef<ExploreDistrictId>('plaza');
@@ -88,7 +89,7 @@ export function CityCameraRig({
     activeDistrictRef.current = districtId;
   }, []);
 
-  // Listen to pointer for parallax and explore orbit
+  // Listen to pointer & touch for parallax and explore orbit
   useEffect(() => {
     const handlePointerMove = (e: MouseEvent) => {
       pointerPos.current.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -135,16 +136,80 @@ export function CityCameraRig({
       }
     };
 
+    // Mobile Touch Orbit & 2-Finger Pinch Zoom Handlers
+    const handleTouchStart = (e: TouchEvent) => {
+      if (chronosStore.experienceMode !== 'explore') return;
+      const target = e.target as HTMLElement;
+      if (!(target.tagName === 'CANVAS' || target.closest('[data-explore-canvas]'))) return;
+
+      if (e.touches.length === 1) {
+        isOrbitDragging.current = true;
+        dragStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        pinchDistance.current = null;
+      } else if (e.touches.length === 2) {
+        isOrbitDragging.current = false;
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        pinchDistance.current = Math.hypot(dx, dy);
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (chronosStore.experienceMode !== 'explore') return;
+
+      if (e.touches.length === 1 && isOrbitDragging.current) {
+        const deltaX = e.touches[0].clientX - dragStart.current.x;
+        const deltaY = e.touches[0].clientY - dragStart.current.y;
+        dragStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+
+        const anchor = DISTRICT_EXPLORE_ANCHORS[chronosStore.exploreDistrict] || DISTRICT_EXPLORE_ANCHORS.plaza;
+        targetOrbitAngles.current.azimuth -= deltaX * 0.008;
+        targetOrbitAngles.current.polar = Math.max(
+          anchor.minPolarAngle,
+          Math.min(anchor.maxPolarAngle, targetOrbitAngles.current.polar + deltaY * 0.007)
+        );
+      } else if (e.touches.length === 2 && pinchDistance.current !== null) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const currentDist = Math.hypot(dx, dy);
+        const pinchDelta = pinchDistance.current - currentDist;
+        pinchDistance.current = currentDist;
+
+        const anchor = DISTRICT_EXPLORE_ANCHORS[chronosStore.exploreDistrict] || DISTRICT_EXPLORE_ANCHORS.plaza;
+        targetOrbitAngles.current.distance = Math.max(
+          anchor.minDistance,
+          Math.min(anchor.maxDistance, targetOrbitAngles.current.distance + pinchDelta * 0.18)
+        );
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length === 0) {
+        isOrbitDragging.current = false;
+        pinchDistance.current = null;
+      } else if (e.touches.length === 1) {
+        isOrbitDragging.current = true;
+        dragStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        pinchDistance.current = null;
+      }
+    };
+
     window.addEventListener('mousemove', handlePointerMove, { passive: true });
     window.addEventListener('mousedown', handlePointerDown);
     window.addEventListener('mouseup', handlePointerUp);
     window.addEventListener('wheel', handleWheel, { passive: true });
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
 
     return () => {
       window.removeEventListener('mousemove', handlePointerMove);
       window.removeEventListener('mousedown', handlePointerDown);
       window.removeEventListener('mouseup', handlePointerUp);
       window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
     };
   }, []);
 
