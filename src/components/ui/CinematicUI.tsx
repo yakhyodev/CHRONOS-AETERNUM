@@ -61,20 +61,24 @@ export function CinematicUI({
           </span>
         </div>
 
-        {/* Minimal telemetry / Shot status, Audio HUD & Quality HUD */}
+        {/* Minimal telemetry / Shot status, Audio HUD, Quality HUD & Direct City Button */}
         <div className="flex items-center gap-2 sm:gap-3 font-mono text-[11px] tracking-widest text-zinc-400">
           <AudioControlsHUD />
           <QualityControlHUD />
-          <div className="hidden sm:flex items-center gap-2 rounded border border-white/10 bg-[#08090D]/60 px-3 py-1 backdrop-blur-sm">
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${
-                isActive ? 'bg-[#EAB774] animate-ping' : 'bg-emerald-400'
-              }`}
-            />
-            <span className="text-[10px] uppercase text-[#F5F3ED]">
-              {isActive ? 'CORE ACTIVE // 4.5X ROTATION' : 'CHAMBER IDLE // RESTING'}
-            </span>
-          </div>
+          <button
+            type="button"
+            disabled={isBusy}
+            onMouseEnter={() => audioManager.playHover()}
+            onClick={() => {
+              audioManager.playConfirm();
+              onActivate();
+            }}
+            aria-label="Enter Aeternum City"
+            className="pointer-events-auto flex items-center gap-2 rounded-full border border-[#D4AF37] bg-[#D4AF37]/25 px-3.5 py-1.5 font-cinzel text-xs font-bold tracking-wider text-[#FFE8B5] shadow-[0_0_16px_rgba(212,175,55,0.35)] transition-all hover:bg-[#D4AF37]/40 hover:scale-105 active:scale-95 disabled:opacity-50"
+          >
+            <span>AETERNUM CITY</span>
+            <span className="text-[#FFE8B5] font-bold">&rarr;</span>
+          </button>
         </div>
       </header>
 
@@ -97,8 +101,8 @@ export function CinematicUI({
           </p>
         </div>
 
-        {/* Primary Interactive CTA: INITIALIZE CHRONOS */}
-        <div className="mt-8 sm:mt-10">
+        {/* Primary Interactive CTA: INITIALIZE CHRONOS & Direct City Travel */}
+        <div className="mt-8 sm:mt-10 flex flex-wrap items-center gap-3">
           <button
             type="button"
             disabled={isBusy}
@@ -114,7 +118,7 @@ export function CinematicUI({
                 onActivate();
               }
             }}
-            aria-label={isActive ? 'Chronos Core is Active (Click to Deactivate)' : 'Initialize Chronos Core'}
+            aria-label={isActive ? 'Enter Aeternum City' : 'Initialize Chronos Core'}
             className={`pointer-events-auto group relative inline-flex items-center gap-3.5 rounded-full border px-7 py-3.5 text-xs sm:text-sm font-mono tracking-[0.24em] uppercase transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:ring-offset-2 focus:ring-offset-[#08090D] disabled:opacity-60 disabled:cursor-wait ${
               isActive
                 ? 'border-[#EAB774] bg-[#EAB774]/20 text-[#FFE8B5] shadow-[0_0_30px_rgba(234,183,116,0.4)]'
@@ -133,7 +137,7 @@ export function CinematicUI({
               />
             </div>
 
-            <span className="font-semibold">{getButtonText()}</span>
+            <span className="font-semibold">{isActive ? 'ENTER AETERNUM →' : getButtonText()}</span>
 
             {/* Glowing Accent Pill */}
             <div
@@ -144,7 +148,40 @@ export function CinematicUI({
               }`}
             />
           </button>
+
+          {/* Quick Direct Jump to Aeternum City */}
+          <button
+            type="button"
+            disabled={isBusy}
+            onMouseEnter={() => audioManager.playHover()}
+            onClick={() => {
+              audioManager.playConfirm();
+              onActivate();
+            }}
+            className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#08090D]/70 px-4 py-3 text-xs font-mono tracking-[0.2em] text-[#EAB774] transition hover:border-[#D4AF37] hover:bg-[#D4AF37]/20"
+          >
+            <span>EXPLORE CITY</span>
+            <span>&rarr;</span>
+          </button>
         </div>
+
+        {/* Portal Arch prompt when at Shot 06 */}
+        {currentShot === 'shot-06' && (
+          <div className="mt-5 pointer-events-auto animate-pulse">
+            <button
+              type="button"
+              disabled={isBusy}
+              onClick={() => {
+                audioManager.playConfirm();
+                onActivate();
+              }}
+              className="inline-flex items-center gap-3 rounded-full border-2 border-[#EAB774] bg-[#EAB774]/25 px-5 py-2.5 font-cinzel text-xs sm:text-sm font-bold tracking-[0.2em] text-[#FFE8B5] shadow-[0_0_25px_rgba(234,183,116,0.5)] backdrop-blur-md transition hover:scale-105 hover:bg-[#EAB774]/35"
+            >
+              <span>ENTER THE HORIZON PORTAL</span>
+              <span>&rarr;</span>
+            </button>
+          </div>
+        )}
 
         {/* Current Shot Description Feedback */}
         <div className="mt-6 font-mono text-[11px] tracking-wider text-zinc-400">

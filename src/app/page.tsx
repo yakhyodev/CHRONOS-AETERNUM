@@ -255,7 +255,20 @@ export default function ChronosPage() {
 
   // Cinematic Chamber-to-City Transition Sequence
   const handleActivate = useCallback(() => {
-    if (activationState === 'activating' || activationState === 'deactivating') {
+    if (activationState === 'activating') {
+      // Instant skip if clicked during transition animation
+      if (activeTimeline.current) activeTimeline.current.kill();
+      chronosStore.setActivationProgress(1.0);
+      chronosStore.setPortalProgress(0);
+      chronosStore.setActivationState('active');
+      chronosStore.setWorldMode('city');
+      chronosStore.setCurrentSegment('grand-arrival');
+      chronosStore.setJourneyProgress(0);
+      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+      return;
+    }
+
+    if (activationState === 'deactivating') {
       return;
     }
 
@@ -271,7 +284,7 @@ export default function ChronosPage() {
 
     // 1. Initiate Core Activation
     chronosStore.setActivationState('activating');
-    const duration = reducedMotion ? 0.3 : 2.4;
+    const duration = reducedMotion ? 0.3 : 1.8;
 
     const proxy = { actProgress: chronosStore.activationProgress, portalProgress: 0 };
     const tl = gsap.timeline({
@@ -290,7 +303,7 @@ export default function ChronosPage() {
     // Step A: Charge Chronos Core & approach Portal Archway
     tl.to(proxy, {
       actProgress: 1.0,
-      duration: duration * 0.5,
+      duration: duration * 0.45,
       ease: 'power2.inOut',
       onUpdate: () => {
         chronosStore.setActivationProgress(proxy.actProgress);
@@ -305,7 +318,7 @@ export default function ChronosPage() {
 
     tl.to(proxy, {
       portalProgress: 1.0,
-      duration: duration * 0.5,
+      duration: duration * 0.55,
       ease: 'power3.inOut',
       onUpdate: () => {
         chronosStore.setPortalProgress(proxy.portalProgress);
@@ -314,24 +327,33 @@ export default function ChronosPage() {
   }, [activationState, worldMode, reducedMotion, handleReturnToChamber]);
 
   // Synchronized shot navigation for Chamber scroll
-  const handleSelectShot = useCallback((shotId: CinematicShotId) => {
-    const shotIdx = CINEMATIC_SHOTS.findIndex((s) => s.id === shotId);
-    if (shotIdx === -1) return;
+  const handleSelectShot = useCallback(
+    (shotId: CinematicShotId) => {
+      if (shotId === 'shot-06' && currentShot === 'shot-06') {
+        // If user is already at the portal and clicks it again, enter the city directly!
+        handleActivate();
+        return;
+      }
 
-    chronosStore.setCurrentShot(shotId);
+      const shotIdx = CINEMATIC_SHOTS.findIndex((s) => s.id === shotId);
+      if (shotIdx === -1) return;
 
-    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-    if (maxScroll > 0) {
-      isProgrammaticScroll.current = true;
-      const targetY = (shotIdx / (CINEMATIC_SHOTS.length - 1)) * maxScroll;
-      window.scrollTo({ top: targetY, behavior: 'smooth' });
+      chronosStore.setCurrentShot(shotId);
 
-      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-      scrollTimeoutRef.current = setTimeout(() => {
-        isProgrammaticScroll.current = false;
-      }, 1000);
-    }
-  }, []);
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (maxScroll > 0) {
+        isProgrammaticScroll.current = true;
+        const targetY = (shotIdx / (CINEMATIC_SHOTS.length - 1)) * maxScroll;
+        window.scrollTo({ top: targetY, behavior: 'smooth' });
+
+        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+        scrollTimeoutRef.current = setTimeout(() => {
+          isProgrammaticScroll.current = false;
+        }, 1000);
+      }
+    },
+    [currentShot, handleActivate]
+  );
 
   // Synchronized segment chapter navigation for City flight scroll
   const handleSelectSegment = useCallback((segmentId: CinematicSegmentId) => {
