@@ -5,6 +5,16 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { chronosStore } from '@/lib/chronosStore';
 import { getTemporalMorphState } from '@/types/phase06';
+import {
+  getRealBrickPBR,
+  getRealWoodPBR,
+  getRealRockPBR,
+  getRealMetalPBR,
+  getAshlarStonePBR,
+  getClockDialTexture,
+  getBuildingFacadePBR,
+  loadFileTexture,
+} from '@/lib/pbrTextures';
 
 export function EraLandmark() {
   // References for all 5 landmark era variant groups
@@ -19,94 +29,144 @@ export function EraLandmark() {
   const ringsRef = useRef<THREE.Group>(null);
   const energyCoreRef = useRef<THREE.Mesh>(null);
 
-  // Materials palette for all 5 historical eras
+  // Materials palette for all 5 historical eras with real PBR maps
   const materials = useMemo(() => {
+    const rock = getRealRockPBR(3, 4);
+    const brick = getRealBrickPBR(3, 4);
+    const wood = getRealWoodPBR(2, 2);
+    const metal = getRealMetalPBR(3, 3);
+    const ashlar = getAshlarStonePBR(2, 5);
+    const clockDialTex = getClockDialTexture();
+    const cyber = getBuildingFacadePBR('cyber', 2, 4);
+    const plasmaTex = loadFileTexture('/textures/plasma_core.jpg', 2, 2, true);
+
     return {
       // 1200 BCE materials
       primevalSandstone: new THREE.MeshStandardMaterial({
         color: '#C2A378',
-        roughness: 0.9,
-        metalness: 0.08,
+        normalMap: rock.normalMap,
+        roughnessMap: rock.roughnessMap,
+        roughness: 0.78,
+        metalness: 0.12,
       }),
       crudeBronze: new THREE.MeshStandardMaterial({
         color: '#A87034',
-        roughness: 0.65,
-        metalness: 0.75,
+        normalMap: metal.normalMap,
+        roughness: 0.36,
+        metalness: 0.88,
       }),
-      fireGlow: new THREE.MeshBasicMaterial({
-        color: '#FF6B1A',
+      fireGlow: new THREE.MeshStandardMaterial({
+        color: '#FF9E44',
+        map: plasmaTex,
+        emissive: '#FF5E00',
+        emissiveMap: plasmaTex,
+        emissiveIntensity: 2.2,
       }),
 
       // 1450 CE materials
       medievalAshlar: new THREE.MeshStandardMaterial({
-        color: '#A09686',
-        roughness: 0.85,
-        metalness: 0.1,
+        color: '#B5AA99',
+        map: ashlar.map,
+        normalMap: ashlar.normalMap,
+        roughnessMap: ashlar.roughnessMap,
+        roughness: 0.72,
+        metalness: 0.15,
       }),
       timberHoarding: new THREE.MeshStandardMaterial({
-        color: '#5C4028',
-        roughness: 0.75,
-        metalness: 0.05,
+        color: '#8A6240',
+        map: wood.map,
+        bumpMap: wood.bumpMap,
+        bumpScale: 0.08,
+        roughnessMap: wood.roughnessMap,
+        roughness: 0.72,
+        metalness: 0.08,
       }),
       agedCopperRoof: new THREE.MeshStandardMaterial({
         color: '#4B7B68',
-        roughness: 0.6,
-        metalness: 0.45,
+        normalMap: metal.normalMap,
+        roughness: 0.38,
+        metalness: 0.72,
       }),
       bellBronze: new THREE.MeshStandardMaterial({
-        color: '#B08836',
-        roughness: 0.4,
-        metalness: 0.8,
+        color: '#C49A45',
+        normalMap: metal.normalMap,
+        roughness: 0.25,
+        metalness: 0.92,
       }),
 
       // 1890 CE materials
       victorianBrick: new THREE.MeshStandardMaterial({
-        color: '#823828',
-        roughness: 0.85,
-        metalness: 0.12,
+        color: '#B85A46',
+        map: brick.map,
+        bumpMap: brick.bumpMap,
+        bumpScale: 0.12,
+        roughnessMap: brick.roughnessMap,
+        roughness: 0.76,
+        metalness: 0.15,
       }),
       rivetedIron: new THREE.MeshStandardMaterial({
-        color: '#282C30',
-        roughness: 0.6,
-        metalness: 0.85,
+        color: '#282D33',
+        normalMap: metal.normalMap,
+        roughness: 0.35,
+        metalness: 0.92,
       }),
       brassMachinery: new THREE.MeshStandardMaterial({
-        color: '#D4A045',
-        roughness: 0.35,
-        metalness: 0.88,
+        color: '#E0AC4C',
+        normalMap: metal.normalMap,
+        emissive: '#3d2506',
+        emissiveIntensity: 0.25,
+        roughness: 0.22,
+        metalness: 0.94,
       }),
       gasFlame: new THREE.MeshBasicMaterial({
-        color: '#FF8A24',
+        color: '#FFB448',
       }),
 
       // 2026 CE materials
       civicSandstone: new THREE.MeshStandardMaterial({
-        color: '#D4C2A8',
-        roughness: 0.72,
-        metalness: 0.18,
+        color: '#d8c5a8',
+        map: ashlar.map,
+        normalMap: ashlar.normalMap,
+        roughnessMap: ashlar.roughnessMap,
+        roughness: 0.68,
+        metalness: 0.16,
       }),
       darkGranite: new THREE.MeshStandardMaterial({
         color: '#2A3035',
-        roughness: 0.82,
-        metalness: 0.15,
+        normalMap: rock.normalMap,
+        roughnessMap: rock.roughnessMap,
+        roughness: 0.48,
+        metalness: 0.42,
       }),
       goldCupola: new THREE.MeshStandardMaterial({
-        color: '#D4AF37',
-        roughness: 0.3,
-        metalness: 0.85,
+        color: '#E5BD42',
+        normalMap: metal.normalMap,
+        emissive: '#4d3208',
+        emissiveIntensity: 0.35,
+        roughness: 0.18,
+        metalness: 0.96,
       }),
       clockDialLuminous: new THREE.MeshStandardMaterial({
-        color: '#FFF2D6',
-        emissive: '#FFB84D',
-        emissiveIntensity: 1.8,
-        roughness: 0.2,
+        color: '#ffffff',
+        map: clockDialTex,
+        emissive: '#ffcf75',
+        emissiveMap: clockDialTex,
+        emissiveIntensity: 1.15,
+        roughness: 0.22,
+        metalness: 0.45,
       }),
 
       // 2200 CE materials
       darkObsidian: new THREE.MeshStandardMaterial({
-        color: '#0E1318',
-        roughness: 0.2,
-        metalness: 0.95,
+        color: '#ffffff',
+        map: cyber.map,
+        normalMap: cyber.normalMap,
+        roughnessMap: cyber.roughnessMap,
+        emissive: '#00e5ff',
+        emissiveMap: cyber.emissiveMap,
+        emissiveIntensity: 0.85,
+        roughness: 0.18,
+        metalness: 0.92,
       }),
       hologramCyan: new THREE.MeshBasicMaterial({
         color: '#00F0FF',
@@ -116,10 +176,11 @@ export function EraLandmark() {
       }),
       chroniteCrystal: new THREE.MeshStandardMaterial({
         color: '#104A68',
+        normalMap: metal.normalMap,
         emissive: '#00D4FF',
-        emissiveIntensity: 1.5,
-        roughness: 0.15,
-        metalness: 0.8,
+        emissiveIntensity: 2.2,
+        roughness: 0.12,
+        metalness: 0.88,
       }),
     };
   }, []);

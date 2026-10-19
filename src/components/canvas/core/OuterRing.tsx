@@ -5,28 +5,37 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { CHRONOS_PALETTE } from '@/lib/constants';
 import { chronosStore } from '@/lib/chronosStore';
+import { getRealMetalPBR, getRealRockPBR } from '@/lib/pbrTextures';
 import { AncientEngravings } from './AncientEngravings';
 
 export function OuterRing() {
   const slowPrecessionRef = useRef<THREE.Group>(null);
 
-  // Memoized shared materials with cleanup
+  // Memoized shared materials with PBR normal maps and cleanup
   const { bronzeMaterial, goldAccentMaterial, darkStoneMaterial } = useMemo(() => {
+    const metal = getRealMetalPBR(4, 1);
+    const rock = getRealRockPBR(2, 2);
     return {
       bronzeMaterial: new THREE.MeshStandardMaterial({
         color: CHRONOS_PALETTE.antiqueBronze,
-        roughness: 0.35,
-        metalness: 0.88,
+        normalMap: metal.normalMap,
+        roughness: 0.26,
+        metalness: 0.92,
       }),
       goldAccentMaterial: new THREE.MeshStandardMaterial({
         color: CHRONOS_PALETTE.warmGold,
-        roughness: 0.28,
-        metalness: 0.92,
+        normalMap: metal.normalMap,
+        emissive: '#3d2406',
+        emissiveIntensity: 0.28,
+        roughness: 0.18,
+        metalness: 0.96,
       }),
       darkStoneMaterial: new THREE.MeshStandardMaterial({
         color: CHRONOS_PALETTE.darkStone,
-        roughness: 0.8,
-        metalness: 0.2,
+        normalMap: rock.normalMap,
+        roughnessMap: rock.roughnessMap,
+        roughness: 0.65,
+        metalness: 0.3,
       }),
     };
   }, []);

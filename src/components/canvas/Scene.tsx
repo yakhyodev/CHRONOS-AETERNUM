@@ -20,6 +20,8 @@ import { CinematicCameraRig } from './CinematicCameraRig';
 import { AeternumWorld } from './city/AeternumWorld';
 import { CityCameraRig } from './city/CityCameraRig';
 import { TemporalTunnel } from './transition/TemporalTunnel';
+import { HDREnvironment } from './HDREnvironment';
+import { CinematicPostProcessing } from './CinematicPostProcessing';
 import { WebGLFallback } from '../ui/WebGLFallback';
 
 interface SceneProps {
@@ -183,6 +185,8 @@ export function Scene({
           onContextLost={handleContextLost}
           onContextRestored={handleContextRestored}
         />
+        <HDREnvironment />
+        <CinematicPostProcessing qualityPreset={activeQualityKey} />
 
         {/* Dynamic Background: Void Black in chamber, Era Sky in city */}
         <color

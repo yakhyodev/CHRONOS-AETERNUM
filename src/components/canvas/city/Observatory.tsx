@@ -5,6 +5,12 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { chronosStore } from '@/lib/chronosStore';
 import { getTemporalMorphState } from '@/types/phase06';
+import {
+  getRealRockPBR,
+  getRealBrickPBR,
+  getRealMetalPBR,
+  getAshlarStonePBR,
+} from '@/lib/pbrTextures';
 
 export function Observatory() {
   const originRef = useRef<THREE.Group>(null);
@@ -28,41 +34,65 @@ export function Observatory() {
     hologramCyanMat,
     chroniteMat,
   } = useMemo(() => {
+    const rock = getRealRockPBR(4, 3);
+    const brick = getRealBrickPBR(3, 2);
+    const metal = getRealMetalPBR(3, 2);
+    const ashlar = getAshlarStonePBR(3, 3);
+
     return {
       cliffMat: new THREE.MeshStandardMaterial({
-        color: '#282B30',
-        roughness: 0.95,
-        metalness: 0.05,
+        color: '#2E333A',
+        normalMap: rock.normalMap,
+        roughnessMap: rock.roughnessMap,
+        roughness: 0.78,
+        metalness: 0.16,
       }),
       stoneWallMat: new THREE.MeshStandardMaterial({
-        color: '#BDB09E',
-        roughness: 0.75,
-        metalness: 0.15,
+        color: '#C8BBAA',
+        map: ashlar.map,
+        normalMap: ashlar.normalMap,
+        roughnessMap: ashlar.roughnessMap,
+        roughness: 0.62,
+        metalness: 0.22,
       }),
-      copperDomeMat: new THREE.MeshStandardMaterial({
-        color: '#557A68', // Patinated copper
-        roughness: 0.45,
-        metalness: 0.65,
+      copperDomeMat: new THREE.MeshPhysicalMaterial({
+        color: '#52806C',
+        normalMap: metal.normalMap,
+        clearcoat: 0.65,
+        clearcoatRoughness: 0.2,
+        roughness: 0.28,
+        metalness: 0.78,
       }),
       whiteMarbleMat: new THREE.MeshStandardMaterial({
-        color: '#E6E1D8',
-        roughness: 0.5,
-        metalness: 0.2,
+        color: '#EDE4D6',
+        map: ashlar.map,
+        normalMap: ashlar.normalMap,
+        roughnessMap: ashlar.roughnessMap,
+        roughness: 0.42,
+        metalness: 0.24,
       }),
       bronzeMat: new THREE.MeshStandardMaterial({
-        color: '#9E743A',
-        roughness: 0.35,
-        metalness: 0.8,
+        color: '#BA8B44',
+        normalMap: metal.normalMap,
+        emissive: '#3d2506',
+        emissiveIntensity: 0.3,
+        roughness: 0.22,
+        metalness: 0.92,
       }),
       ironMat: new THREE.MeshStandardMaterial({
         color: '#2A2E33',
-        roughness: 0.6,
-        metalness: 0.8,
+        normalMap: metal.normalMap,
+        roughness: 0.35,
+        metalness: 0.9,
       }),
       brickMat: new THREE.MeshStandardMaterial({
-        color: '#7A3525',
-        roughness: 0.85,
-        metalness: 0.1,
+        color: '#B85A46',
+        map: brick.map,
+        bumpMap: brick.bumpMap,
+        bumpScale: 0.12,
+        roughnessMap: brick.roughnessMap,
+        roughness: 0.76,
+        metalness: 0.14,
       }),
       hologramCyanMat: new THREE.MeshBasicMaterial({
         color: '#00F0FF',
@@ -72,9 +102,11 @@ export function Observatory() {
       }),
       chroniteMat: new THREE.MeshStandardMaterial({
         color: '#0A1828',
+        normalMap: metal.normalMap,
         emissive: '#00D4FF',
-        emissiveIntensity: 1.6,
-        roughness: 0.2,
+        emissiveIntensity: 1.8,
+        roughness: 0.16,
+        metalness: 0.85,
       }),
     };
   }, []);

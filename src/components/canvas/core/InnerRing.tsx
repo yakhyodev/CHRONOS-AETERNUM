@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { CHRONOS_PALETTE } from '@/lib/constants';
 import { chronosStore } from '@/lib/chronosStore';
+import { getRealMetalPBR } from '@/lib/pbrTextures';
 import { AncientEngravings } from './AncientEngravings';
 
 export function InnerRing() {
@@ -13,18 +14,23 @@ export function InnerRing() {
   const ring3Ref = useRef<THREE.Group>(null);
   const ring4Ref = useRef<THREE.Group>(null);
 
-  // Memoized shared materials
+  // Memoized shared materials with PBR scratched gold normal maps
   const { bronzeMaterial, goldMaterial } = useMemo(() => {
+    const metal = getRealMetalPBR(3, 1);
     return {
       bronzeMaterial: new THREE.MeshStandardMaterial({
         color: CHRONOS_PALETTE.antiqueBronze,
-        roughness: 0.32,
-        metalness: 0.9,
+        normalMap: metal.normalMap,
+        roughness: 0.25,
+        metalness: 0.93,
       }),
       goldMaterial: new THREE.MeshStandardMaterial({
         color: CHRONOS_PALETTE.warmGold,
-        roughness: 0.25,
-        metalness: 0.94,
+        normalMap: metal.normalMap,
+        emissive: '#422708',
+        emissiveIntensity: 0.3,
+        roughness: 0.18,
+        metalness: 0.96,
       }),
     };
   }, []);

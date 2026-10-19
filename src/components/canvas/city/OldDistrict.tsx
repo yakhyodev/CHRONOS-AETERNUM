@@ -5,6 +5,15 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { chronosStore } from '@/lib/chronosStore';
 import { getTemporalMorphState } from '@/types/phase06';
+import {
+  getRealBrickPBR,
+  getRealWoodPBR,
+  getRealRockPBR,
+  getRealMetalPBR,
+  getBuildingFacadePBR,
+  getRoofTilePBR,
+  loadFileTexture,
+} from '@/lib/pbrTextures';
 
 export function OldDistrict() {
   const originRef = useRef<THREE.Group>(null);
@@ -30,80 +39,146 @@ export function OldDistrict() {
     warmWindowMat,
     brazierGlowMat,
   } = useMemo(() => {
+    const rock = getRealRockPBR(4, 3);
+    const brick = getRealBrickPBR(3, 3);
+    const wood = getRealWoodPBR(2, 2);
+    const metal = getRealMetalPBR(2, 2);
+    const medievalFacade = getBuildingFacadePBR('medieval', 2, 2);
+    const victorianFacade = getBuildingFacadePBR('victorian', 2, 3);
+    const heritageFacade = getBuildingFacadePBR('heritage', 2, 3);
+    const cyberFacade = getBuildingFacadePBR('cyber', 2, 3);
+    const clayRoof = getRoofTilePBR('#9C4E38', 4, 4);
+    const slateRoof = getRoofTilePBR('#28323E', 4, 4);
+    const terraRoof = getRoofTilePBR('#B8583B', 4, 4);
+    const plasmaTex = loadFileTexture('/textures/plasma_core.jpg', 1, 1, true);
+
     return {
       foundationMat: new THREE.MeshStandardMaterial({
-        color: '#34383D',
-        roughness: 0.88,
-        metalness: 0.15,
+        color: '#464C54',
+        normalMap: rock.normalMap,
+        roughnessMap: rock.roughnessMap,
+        roughness: 0.72,
+        metalness: 0.22,
       }),
       thatchMat: new THREE.MeshStandardMaterial({
-        color: '#8C7449',
-        roughness: 0.95,
-        metalness: 0.05,
-      }),
-      mudBrickMat: new THREE.MeshStandardMaterial({
-        color: '#826B54',
+        color: '#9C8253',
+        map: wood.map,
+        bumpMap: wood.bumpMap,
+        bumpScale: 0.1,
         roughness: 0.9,
         metalness: 0.05,
       }),
+      mudBrickMat: new THREE.MeshStandardMaterial({
+        color: '#967B60',
+        map: brick.map,
+        bumpMap: brick.bumpMap,
+        bumpScale: 0.08,
+        roughness: 0.85,
+        metalness: 0.08,
+      }),
       timberMat: new THREE.MeshStandardMaterial({
-        color: '#422B18',
-        roughness: 0.82,
-        metalness: 0.1,
-      }),
-      medievalPlasterMat: new THREE.MeshStandardMaterial({
-        color: '#E0D2BC',
-        roughness: 0.8,
-        metalness: 0.1,
-      }),
-      clayShingleMat: new THREE.MeshStandardMaterial({
-        color: '#9C4E38',
-        roughness: 0.7,
-        metalness: 0.15,
-      }),
-      victorianBrickMat: new THREE.MeshStandardMaterial({
-        color: '#6E3224',
-        roughness: 0.82,
-        metalness: 0.12,
-      }),
-      slateRoofMat: new THREE.MeshStandardMaterial({
-        color: '#28323E',
-        roughness: 0.55,
-        metalness: 0.35,
-      }),
-      ironMat: new THREE.MeshStandardMaterial({
-        color: '#1E2226',
-        roughness: 0.6,
-        metalness: 0.85,
-      }),
-      modernStuccoMat: new THREE.MeshStandardMaterial({
-        color: '#D8C9B5',
+        color: '#6E4B2E',
+        map: wood.map,
+        bumpMap: wood.bumpMap,
+        bumpScale: 0.08,
+        roughnessMap: wood.roughnessMap,
         roughness: 0.75,
         metalness: 0.1,
       }),
-      terracottaRoofMat: new THREE.MeshStandardMaterial({
-        color: '#B8583B',
-        roughness: 0.62,
+      medievalPlasterMat: new THREE.MeshStandardMaterial({
+        color: '#ffffff',
+        map: medievalFacade.map,
+        normalMap: medievalFacade.normalMap,
+        roughnessMap: medievalFacade.roughnessMap,
+        emissive: '#ffa63b',
+        emissiveMap: medievalFacade.emissiveMap,
+        emissiveIntensity: 0.5,
+        roughness: 0.74,
         metalness: 0.15,
       }),
-      hologramMat: new THREE.MeshBasicMaterial({
-        color: '#00F0FF',
-        transparent: true,
-        opacity: 0.65,
-        wireframe: true,
+      clayShingleMat: new THREE.MeshStandardMaterial({
+        color: '#ffffff',
+        map: clayRoof.map,
+        normalMap: clayRoof.normalMap,
+        roughness: 0.62,
+        metalness: 0.16,
       }),
-      skywalkGlassMat: new THREE.MeshStandardMaterial({
-        color: '#0A3B5C',
-        roughness: 0.1,
+      victorianBrickMat: new THREE.MeshStandardMaterial({
+        color: '#ffffff',
+        map: victorianFacade.map,
+        normalMap: victorianFacade.normalMap,
+        roughnessMap: victorianFacade.roughnessMap,
+        emissive: '#ff9e38',
+        emissiveMap: victorianFacade.emissiveMap,
+        emissiveIntensity: 0.55,
+        roughness: 0.72,
+        metalness: 0.2,
+      }),
+      slateRoofMat: new THREE.MeshStandardMaterial({
+        color: '#ffffff',
+        map: slateRoof.map,
+        normalMap: slateRoof.normalMap,
+        roughness: 0.48,
+        metalness: 0.38,
+      }),
+      ironMat: new THREE.MeshStandardMaterial({
+        color: '#24292E',
+        normalMap: metal.normalMap,
+        roughness: 0.38,
+        metalness: 0.9,
+      }),
+      modernStuccoMat: new THREE.MeshStandardMaterial({
+        color: '#ffffff',
+        map: heritageFacade.map,
+        normalMap: heritageFacade.normalMap,
+        roughnessMap: heritageFacade.roughnessMap,
+        emissive: '#ffb84d',
+        emissiveMap: heritageFacade.emissiveMap,
+        emissiveIntensity: 0.55,
+        roughness: 0.65,
+        metalness: 0.24,
+      }),
+      terracottaRoofMat: new THREE.MeshStandardMaterial({
+        color: '#ffffff',
+        map: terraRoof.map,
+        normalMap: terraRoof.normalMap,
+        roughness: 0.54,
+        metalness: 0.18,
+      }),
+      hologramMat: new THREE.MeshStandardMaterial({
+        color: '#ffffff',
+        map: cyberFacade.map,
+        normalMap: cyberFacade.normalMap,
+        roughnessMap: cyberFacade.roughnessMap,
+        emissive: '#00F0FF',
+        emissiveMap: cyberFacade.emissiveMap,
+        emissiveIntensity: 0.85,
+        roughness: 0.18,
+        metalness: 0.88,
+      }),
+      skywalkGlassMat: new THREE.MeshPhysicalMaterial({
+        color: '#0A4B75',
+        emissive: '#0077B6',
+        emissiveIntensity: 0.6,
+        clearcoat: 1.0,
+        roughness: 0.08,
         metalness: 0.9,
         transparent: true,
-        opacity: 0.7,
+        opacity: 0.78,
       }),
-      warmWindowMat: new THREE.MeshBasicMaterial({
-        color: '#FFB84D',
+      warmWindowMat: new THREE.MeshStandardMaterial({
+        color: '#FFE0A3',
+        emissive: '#FFA834',
+        emissiveIntensity: 2.2,
+        roughness: 0.1,
+        metalness: 0.8,
       }),
-      brazierGlowMat: new THREE.MeshBasicMaterial({
-        color: '#FF6200',
+      brazierGlowMat: new THREE.MeshStandardMaterial({
+        color: '#FFB466',
+        map: plasmaTex,
+        emissive: '#FF5E00',
+        emissiveMap: plasmaTex,
+        emissiveIntensity: 3.0,
       }),
     };
   }, []);

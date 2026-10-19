@@ -14,6 +14,7 @@ import { Observatory } from './Observatory';
 import { TemporalEchoesLayer } from './TemporalEchoesLayer';
 import { TemporalLensGhost } from './TemporalLensGhost';
 import { TemporalFracture } from './TemporalFracture';
+import { LivingCityLife } from './LivingCityLife';
 import { chronosStore } from '@/lib/chronosStore';
 
 interface AeternumWorldProps {
@@ -84,6 +85,9 @@ export function AeternumWorld({ qualityPreset = 'high' }: AeternumWorldProps) {
 
       {/* 7. District 05: The Observatory (Northern Elevated Hill) */}
       <Observatory />
+
+      {/* 7b. GTA-Style Living Open World: Traffic, River Vessels, Skyline & Streetlights */}
+      <LivingCityLife />
 
       {/* 8. Phase 07: Discoverable Temporal Echoes in Districts */}
       <TemporalEchoesLayer />
